@@ -197,15 +197,19 @@
   /* width:max-content —— 否则块级元素会被 #boardBox 的显式宽度"撑回"，
      缩过一次后量到的"原始尺寸"就变小了，再也放不大回去 */
   #boardWrap{ transform-origin: top left; flex:none; width:max-content; transform:scale(var(--bs,1)); }
+  .sensrow{ display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; color:var(--ink-soft); letter-spacing:1px; }
+  .sensrow input{ width:64px; }
   #zoomBar{ display:inline-flex; align-items:center; gap:5px; margin-left:2px; }
   #zoomBar button{ padding:5px 9px !important; font-size:13px !important; letter-spacing:0 !important; min-width:30px; }
   #zoomVal{ font-size:12px; color:var(--ink-soft); min-width:38px; text-align:center; font-weight:700; }
   /* 麦克风电平条：喊招时能看见自己有没有被听见 */
   #micLevel{
-    display:inline-block; width:46px; height:9px; border-radius:5px;
+    display:inline-block; width:46px; height:9px; border-radius:5px; position:relative;
     border:1px solid rgba(0,0,0,.3); background:#d8c89e; overflow:hidden; vertical-align:middle;
   }
   #micLevel i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#6b8e3d,#b8902e,#a83232); transition:width .08s linear; }
+  /* 触发门槛刻度：喊声越过这条线才会出招，便于自行调整灵敏度 */
+  #micLevel u{ position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:#7a1f1f; opacity:.85; }
   #boardWrap{
     background:linear-gradient(135deg, var(--wood), var(--wood-dark));
     padding:16px; border-radius:8px;
@@ -489,7 +493,10 @@
     <input id="chantInput" type="text" placeholder="喊出招名…" maxlength="8" autocomplete="off" />
     <button id="btnChant" title="喊招" data-page-node-id="c2Nt3xNcvlEXc6VSGJs4H">喊</button>
     <button id="btnVoice" title="开启／关闭口呼喊招" data-page-node-id="cVNt4xNcvlEXc6VSGJs4H">🎤</button>
-    <span id="micLevel" title="麦克风电平"><i></i></span>
+    <span id="micLevel" title="麦克风电平（红线＝喊招门槛，喊声需越过它）"><i></i><u></u></span>
+    <label class="sensrow" title="喊招灵敏度：数值越小越难触发，可避免交谈误出招">
+      <span>喊招灵度</span><input id="voiceSens" type="range" min="0" max="100" value="45" />
+    </label>
   </span>
   <span id="zoomBar" title="调整棋盘大小">
     <button id="btnZoomOut" title="棋盘缩小">－</button>
@@ -518,7 +525,7 @@
   <p data-page-node-id="tTfzO2D67XkgYk2V4ruO3z">① 开局先选「江湖双侠」或「人机论剑」模式，双方各从随机抽出的三门绝学中择一。</p>
   <p data-page-node-id="tnTB5qotLbZ9dH2MieQtLj">② 执黑者先手（若电脑执黑，则电脑先手）。</p>
   <p data-page-node-id="w9SUVMXiYPq38PCpFA83a7">③ 寻常落子蓄气 +6，连成三子额外 +15，连成四子额外 +30（取最高连线）。蓄满 100 即可施展本门绝学；<b>蓄满后不再累积，施展之后清零，从头再蓄</b>。</p>
-  <p data-page-node-id="2Jm8IZTLALkF8MK4bEyNMh">④ <b data-page-node-id="XcAvg6WFYaf5QaydvckUJj">绝学须于本回合落子之前施展</b>。施展后除「星火燎原」连落两子之外，均<b>仍须落一子方算回合结束</b>（含「两级反转」易位之后）。出招不必点任何按钮：<b>轮到你且蓄力满时，直接喊「奥义／绝学／技能 ＋ 招名」即出招</b>（也仍可点「施展技能」、在喊招框输入、或点面板上的绝学名）。首次触碰页面即自动开启聆听；若浏览器不支持或麦克风被拒，会自动改用「听见喊声即出招」的声控方式。</p>
+  <p data-page-node-id="2Jm8IZTLALkF8MK4bEyNMh">④ <b data-page-node-id="XcAvg6WFYaf5QaydvckUJj">绝学须于本回合落子之前施展</b>。施展后除「星火燎原」连落两子之外，均<b>仍须落一子方算回合结束</b>（含「两级反转」易位之后）。出招不必点任何按钮：<b>轮到你且蓄力满时，直接喊「奥义／绝学／技能 ＋ 招名」即出招</b>（也仍可点「施展技能」、在喊招框输入、或点面板上的绝学名）。首次触碰页面即自动开启聆听；若浏览器不支持或麦克风被拒，会自动改用「听见喊声即出招」的声控方式。声控须<b>明显高出日常说话的音量</b>、且喊之前有片刻安静方会触发，交谈不会误出招；灵敏度可用工具栏「喊招灵度」调节，麦克风电平条上的<b>红线即为触发门槛</b>，喊声越过它才会出招。</p>
   <p data-page-node-id="GOq8w754QuRDmivvUAgf4R">⑤ 率先连成五子者，对手失一命，棋盘不重置，战斗继续。某方三命皆失则败北。</p>
   <p data-page-node-id="4Mi6CRQTIxzMmjDfV8M3OC">⑥ 已成之五子以<b data-page-node-id="EILV1DIvDmOBokQ00qK1Ew">铁链锁住</b>：被锁之子不可被任何技能改变（移、易帜、翻转皆不能）。新的五连<b>可以含有被锁之子</b>，但<b>不得包含同一串锁链中的两枚</b>；若新五连里有两枚同串锁子，则此五连不作数。</p>
   <p data-page-node-id="r9DVJjPeE9HlApvwXbEeMy">⑦ 各门绝学：飞沙走石 · 静如止水 · 力拔山兮 · 东山再起（悔棋一步：实悔两步）· 移星换斗 · <b data-page-node-id="730NHanTs9iMxUDSjL8ZLC">铜墙铁壁</b>（封一空点，<b>本局双方皆不得落</b>）· 星火燎原（横竖斜相邻皆算）· <b data-page-node-id="rt6t9mLKP7HzbM1Nr0kjKZ">择木而栖</b>（令对手一子易帜）· <b data-page-node-id="G2W91D2jOyKnvB5GHXF3oc">调虎离山</b>（封对手<b>三个回合</b>不得施展绝学）· <b data-page-node-id="730NHanTs9iMxUDSjL8ZLC">两级反转</b>（全盘未锁之黑白易位）。</p>
@@ -3125,14 +3132,24 @@ const Voice = {
   rec: null, recOn: false, recFail: 0, recT: null, recWd: null,
   stream: null, actx: null, an: null, buf: null, raf: 0, _levelPending: false, _lvlWd: null,
   noise: 0.02, calib: 0, level: 0,
-  // 短窗爆发检测器状态（抗 BGM 漏声）：记录「高出噪声底 ≥DB_HI 分贝」的时间点，
-  // 滑动窗口内攒够 NEED 个即视为一声喊招（容忍字与字之间的气口间隙）。
-  _hiT: [], _last: 0, lastFire: 0, lastText: '',
+  // 喊招判定：以「绝对响度」为主门槛。说话与大喊的真正差别在绝对音量，
+  // 而「相对噪声底的倍数」挡不住说话（说话本就比环境底响几十倍）——这正是此前误触发的根因。
+  // lastFire 取极小初值：否则刚开页面的头两秒会因「未过冷却」而喊不出招
+  _hiT: [], _allT: [], _last: 0, _lastLo: 0, lastFire: -1e9, lastText: '',
+  _inQ: false, _qStart: 0, _qDur: 1e5,   // 安静段统计（初值视为「之前一直很安静」）
+  sens: 45,          // 灵敏度 0~100（越大越灵敏＝门槛越低），可在工具栏调节
+  talkRef: 0,        // 常态音量参考：持续交谈时自动抬高门槛
   // 可调参数
-  DB_HI: 7,          // 高于噪声底多少分贝才算「说话候选」（音乐漏声通常远低于此）
-  WIN: 900,          // 滑动窗口毫秒
-  NEED: 12,          // 窗口内需攒够的说话候选帧数（≈150~250ms 的说话能量，容气口）
+  ABS_MIN: 0.06, ABS_MAX: 0.25,  // 绝对响度门槛区间（rms），由灵敏度线性映射
+  REL_NOISE: 3,      // 至少高出环境噪声底 3 倍（挡环境噪声）
+  REL_TALK: 1.7,     // 至少高出近期常态音量 1.7 倍（挡持续交谈）
+  WIN: 700,          // 判定窗口毫秒
+  HI_RATIO: 0.6,     // 窗口内需有 60% 的帧超门槛（要求「持续喊」，而非一声咳嗽/爆音）
+  HI_MIN: 12,        // 窗口内最少超门槛帧数
+  QUIET_MS: 280,     // 喊之前须连续安静这么久：交谈的词间气口只有几十毫秒，据此滤掉边聊边玩
+  COOLDOWN: 2200,    // 两次出招最小间隔毫秒
   FLOOR_ATTACK: 0.015, FLOOR_RELEASE: 0.06,
+  TALK_ATTACK: 0.006, TALK_RELEASE: 0.002,
 
   init(){
     this.SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -3148,11 +3165,20 @@ const Voice = {
     else if(this.engine === 'denied'){ b.textContent = '🎤'; b.style.opacity = '.4'; b.title = '麦克风不可用，请改用右侧输入框'; }
     else { b.textContent = '🎤'; b.style.opacity = '.7'; b.title = '口呼喊招（点击开启／关闭）'; }
   },
+  now(){ return (window.performance && performance.now) ? performance.now() : Date.now(); },
+  /* 当前触发门槛（rms）：绝对响度 / 环境噪声底 / 近期常态音量，三者取最大 */
+  thr(){
+    const abs = this.ABS_MIN + (1 - this.sens / 100) * (this.ABS_MAX - this.ABS_MIN);
+    return Math.max(abs, this.noise * this.REL_NOISE, this.talkRef * this.REL_TALK);
+  },
   meter(v){
     const m = document.getElementById('micLevel');
     if(!m) return;
     const i = m.querySelector('i');
     if(i) i.style.width = Math.max(0, Math.min(100, Math.round(v * 100))) + '%';
+    // 门槛刻度：让用户直观看到「还得再大声点才触发」
+    const u = m.querySelector('u');
+    if(u) u.style.left = Math.max(0, Math.min(100, Math.round(this.thr() * 4 * 100))) + '%';
   },
   canFire(){
     if(!players || !players[current] || !players[current].char) return false;
@@ -3289,7 +3315,9 @@ const Voice = {
         an.fftSize = 1024; an.smoothingTimeConstant = 0.3;
         src.connect(an);
         self.an = an; self.buf = new Uint8Array(an.fftSize);
-        self.noise = 0.02; self.calib = 0; self._last = 0; self._hiT = [];
+        self.noise = 0.02; self.calib = 0; self._last = 0;
+        self._hiT = []; self._allT = []; self.talkRef = 0;
+        self._inQ = false; self._qStart = 0; self._qDur = 1e5;
         self.engine = 'level'; self.paint();
         self.tick();
       })
@@ -3314,7 +3342,7 @@ const Voice = {
     const rms = Math.sqrt(sum / buf.length);
     this.level = rms;
     this.meter(Math.min(1, rms * 4));
-    const now = (window.performance && performance.now) ? performance.now() : Date.now();
+    const now = this.now();
     const dt = this._last ? Math.min(120, now - this._last) : 16;
     this._last = now;
     if(document.hidden) return;
@@ -3324,27 +3352,50 @@ const Voice = {
       this.calib++;
       if(this.calib === 1) this.noise = Math.max(rms, 0.003);
       else this.noise = Math.min(this.noise, rms);
+      if(this.calib >= 30) this.talkRef = this.noise;
       return;
     }
 
     // ---- 噪声底自适应（幅度域）：背景音乐从喇叭漏进麦克风会被吸收为"底"，
     //      以免把它误判成喊话；真正的说话声远比这个底要高。----
-    // 快速回落安静（人一停嘴底就降），极慢跟随稳态漏声（音乐不至于把底抬太高太久）。
-    if(rms > this.noise) this.noise += (rms - this.noise) * this.FLOOR_ATTACK;
-    else                 this.noise += (rms - this.noise) * this.FLOOR_RELEASE;
-    this.noise = Math.max(0.004, Math.min(0.4, this.noise));
+    // 关键：只在安静帧更新。若放任它在有人发声时一路抬升，门槛会被推得越来越高，
+    // 结果连真喊都够不着（实测持续大喊 0.7s 后门槛能从 0.165 一路涨到 0.43）。
+    if(rms <= this.noise * 1.8){
+      if(rms > this.noise) this.noise += (rms - this.noise) * this.FLOOR_ATTACK;
+      else                 this.noise += (rms - this.noise) * this.FLOOR_RELEASE;
+      this.noise = Math.max(0.004, Math.min(0.4, this.noise));
+    }
 
-    // ---- 短窗爆发检测：在高出底 ≥DB_HI 分贝才算一次"说话帧"；窗口内攒够 NEED 个即触发 ----
-    const hi = (rms >= this.noise * Math.pow(10, this.DB_HI / 20) + 1e-9);
+    // ---- 常态音量参考（慢速跟随）：一直在交谈时把它抬上去，门槛随之抬高 ----
+    if(rms > this.talkRef) this.talkRef += (rms - this.talkRef) * this.TALK_ATTACK;
+    else                   this.talkRef += (rms - this.talkRef) * this.TALK_RELEASE;
+
+    // ---- 喊招判定：超门槛 + 持续 + 此前是安静的 + 过冷却 ----
+    const thr = this.thr();
+    const hi = (rms >= thr);
+    // 统计「本段高声之前的安静持续了多久」：喊招前人会先闭嘴吸气（数百毫秒），
+    // 而交谈的换气口只有几十毫秒——这个差别能把「边聊天边玩」挡在外面。
+    if(rms < thr * 0.6){
+      if(!this._inQ){ this._inQ = true; this._qStart = now; }
+    }else{
+      if(this._inQ){ this._inQ = false; this._qDur = now - this._qStart; }
+    }
+    this._allT.push(now);
     if(hi) this._hiT.push(now);
     const cutoff = now - this.WIN;
-    while(this._hiT.length && this._hiT[0] < cutoff) this._hiT.shift();
+    while(this._allT.length && this._allT[0] < cutoff) this._allT.shift();
+    while(this._hiT.length  && this._hiT[0]  < cutoff) this._hiT.shift();
 
-    // 触发：窗口内说话帧够多，且过了冷却期，且确可出招
-    if(this._hiT.length >= this.NEED && now - this.lastFire > 1300 && this.canFire()){
+    const sustained = this._allT.length >= 18
+                   && this._hiT.length  >= this.HI_MIN
+                   && (this._hiT.length / this._allT.length) >= this.HI_RATIO;
+    const wasQuiet  = this._qDur >= this.QUIET_MS;
+
+    if(sustained && wasQuiet && now - this.lastFire > this.COOLDOWN && this.canFire()){
       this.lastFire = now;
-      this._hiT = [];
-      chantSkill(players[current].char.name, true);
+      this._hiT = []; this._allT = [];
+      const me = (typeof players === 'object' && players && players[current] && players[current].char) ? players[current].char : null;
+      if(me) chantSkill(me.name, true);
     }
   },
 
@@ -3357,7 +3408,7 @@ const Voice = {
     if(!this.canFire()) return false;
     const me = players[current];
     if(!me || !me.char || me.char.skill !== id) return false;
-    const now = Date.now();
+    const now = this.now();   // 与声控共用同一时间基准，否则冷却判定会互相干扰
     if(now - this.lastFire < 1500 && this.lastText === s) return false;
     this.lastFire = now; this.lastText = s;
     const input = document.getElementById('chantInput');
@@ -3412,6 +3463,21 @@ function init(){
     const sync = ()=>{ if(vBgm) vBgm.value = Math.round(Sound._bgmVol * 100); if(vSfx) vSfx.value = Math.round(Sound._sfxVol * 100); };
     document.addEventListener('pointerdown', sync, {passive:true, once:true});
     document.addEventListener('touchstart', sync, {passive:true, once:true});
+  })();
+  // 喊招灵敏度：数值越小门槛越高（越不容易因交谈误出招）
+  (function initSensSlider(){
+    const vSens = document.getElementById('voiceSens');
+    if(!vSens) return;
+    try{
+      const s = parseFloat(localStorage.getItem('gomoku_voiceSens'));
+      if(!isNaN(s)) Voice.sens = Math.max(0, Math.min(100, s));
+    }catch(e){}
+    vSens.value = Math.round(Voice.sens);
+    vSens.addEventListener('input', ()=>{
+      Voice.sens = Math.max(0, Math.min(100, parseFloat(vSens.value) || 0));
+      try{ localStorage.setItem('gomoku_voiceSens', String(Voice.sens)); }catch(e){}
+      Voice.meter(Voice.level * 4);   // 立刻刷新门槛刻度位置
+    });
   })();
   // 喊招
   const chantInput = document.getElementById('chantInput');
