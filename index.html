@@ -97,8 +97,9 @@
     flex:1; background:var(--paper-light);
     border:1.5px solid var(--ink-soft); border-radius:4px;
     padding:12px 14px;
-    /* 预留一行高度：状态文字增减时框体不再忽大忽小 */
-    min-height:170px;
+    /* 预留思忖折行的缓冲：人机对局电脑「思忖…」会让 phead 折成双行，
+       高度从 22→49，留足高度就再也不会忽大忽小 */
+    min-height:200px;
     box-shadow:0 4px 10px var(--shadow), inset 0 0 0 1px rgba(255,255,255,.4);
     position:relative;
     transition:box-shadow .2s, border-color .2s;
@@ -495,7 +496,7 @@
     <button id="btnVoice" title="开启／关闭口呼喊招" data-page-node-id="cVNt4xNcvlEXc6VSGJs4H">🎤</button>
     <span id="micLevel" title="麦克风电平（红线＝喊招门槛，喊声需越过它）"><i></i><u></u></span>
     <label class="sensrow" title="喊招灵敏度：数值越小越难触发，可避免交谈误出招">
-      <span>喊招灵度</span><input id="voiceSens" type="range" min="0" max="100" value="45" />
+      <span>喊招灵度</span><input id="voiceSens" type="range" min="0" max="130" value="45" />
     </label>
   </span>
   <span id="zoomBar" title="调整棋盘大小">
@@ -3137,10 +3138,10 @@ const Voice = {
   // lastFire 取极小初值：否则刚开页面的头两秒会因「未过冷却」而喊不出招
   _hiT: [], _allT: [], _last: 0, _lastLo: 0, lastFire: -1e9, lastText: '',
   _inQ: false, _qStart: 0, _qDur: 1e5,   // 安静段统计（初值视为「之前一直很安静」）
-  sens: 45,          // 灵敏度 0~100（越大越灵敏＝门槛越低），可在工具栏调节
+  sens: 45,          // 灵敏度 0~130（越大越灵敏＝门槛越低；上限放宽给「小声设备」用）
   talkRef: 0,        // 常态音量参考：持续交谈时自动抬高门槛
   // 可调参数
-  ABS_MIN: 0.06, ABS_MAX: 0.25,  // 绝对响度门槛区间（rms），由灵敏度线性映射
+  ABS_MIN: 0.02, ABS_MAX: 0.25,  // 绝对响度门槛区间（rms），由灵敏度映射；下限放宽到 .02 给「小声设备」留余地
   REL_NOISE: 3,      // 至少高出环境噪声底 3 倍（挡环境噪声）
   REL_TALK: 1.7,     // 至少高出近期常态音量 1.7 倍（挡持续交谈）
   WIN: 700,          // 判定窗口毫秒
@@ -3168,7 +3169,9 @@ const Voice = {
   now(){ return (window.performance && performance.now) ? performance.now() : Date.now(); },
   /* 当前触发门槛（rms）：绝对响度 / 环境噪声底 / 近期常态音量，三者取最大 */
   thr(){
-    const abs = this.ABS_MIN + (1 - this.sens / 100) * (this.ABS_MAX - this.ABS_MIN);
+    // sens 范围 0~130；>100 区间把 abs 继续向下推，给「喊了都说触发不了」的用户留余量
+    const t = Math.max(0, Math.min(130, this.sens));
+    const abs = this.ABS_MIN + (1 - t / 100) * (this.ABS_MAX - this.ABS_MIN);
     return Math.max(abs, this.noise * this.REL_NOISE, this.talkRef * this.REL_TALK);
   },
   meter(v){
@@ -3470,11 +3473,11 @@ function init(){
     if(!vSens) return;
     try{
       const s = parseFloat(localStorage.getItem('gomoku_voiceSens'));
-      if(!isNaN(s)) Voice.sens = Math.max(0, Math.min(100, s));
+      if(!isNaN(s)) Voice.sens = Math.max(0, Math.min(130, s));
     }catch(e){}
     vSens.value = Math.round(Voice.sens);
     vSens.addEventListener('input', ()=>{
-      Voice.sens = Math.max(0, Math.min(100, parseFloat(vSens.value) || 0));
+      Voice.sens = Math.max(0, Math.min(130, parseFloat(vSens.value) || 0));
       try{ localStorage.setItem('gomoku_voiceSens', String(Voice.sens)); }catch(e){}
       Voice.meter(Voice.level * 4);   // 立刻刷新门槛刻度位置
     });
