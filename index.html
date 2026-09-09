@@ -1,0 +1,2990 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="3gofiQWESUOR2zMNARk1L0">
+<head data-page-node-id="5KURbYCa1TRxqarRnCF9Ts">
+<meta charset="UTF-8" data-page-node-id="uE6MdQY6yAEWTXE3fekQB6">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="dnMP2euSbAontUi9nygJgq">
+<title>技能五子棋 · 江湖对弈</title>
+<style>
+  :root{
+    --paper:#f0e6d0; --paper-light:#faf2dc; --paper-dark:#e0d2ad;
+    --ink:#241d18; --ink-soft:#5a4a3a;
+    --cinnabar:#a83232; --cinnabar-deep:#6e1c1c;
+    --gold:#b8902e; --gold-light:#e7c87a;
+    --bamboo:#6b8e3d; --wood:#c49770; --wood-dark:#7d5a36;
+    --shadow:rgba(60,40,20,.18);
+    --char-color:#a83232;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:"STKaiti","KaiTi","STXingkai","STSong","Microsoft YaHei",serif;
+    background:
+      radial-gradient(ellipse at 20% 0%, #faf2dc 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, #d8c89e 0%, transparent 50%),
+      linear-gradient(135deg, #f0e6d0, #d8c89e);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:18px 10px 48px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1{
+    font-family:"STKaiti","STXingkai","KaiTi",serif;
+    font-size:34px; margin:4px 0 0; letter-spacing:12px;
+    color:var(--cinnabar);
+    text-shadow:0 2px 0 rgba(0,0,0,.06);
+    position:relative; font-weight:700;
+  }
+  h1::after{
+    content:"武"; position:absolute; right:-42px; top:-4px;
+    font-size:16px; width:36px; height:36px;
+    border:2.5px solid var(--cinnabar); border-radius:5px;
+    color:var(--cinnabar); display:flex; align-items:center; justify-content:center;
+    font-weight:bold; transform:rotate(-6deg);
+    background:rgba(168,50,50,.08);
+    box-shadow:0 2px 4px rgba(168,50,50,.2);
+  }
+  .sub{ color:var(--ink-soft); font-size:13px; margin:8px 0 16px; letter-spacing:5px; font-style:italic; }
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; align-items:center;}
+  button{
+    font-family:inherit; font-size:15px; padding:10px 20px;
+    border-radius:2px; border:1.5px solid var(--ink);
+    background:var(--paper-light); color:var(--ink);
+    cursor:pointer; letter-spacing:4px;
+    transition:.15s; position:relative; font-weight:600;
+    box-shadow:0 2px 0 var(--ink-soft);
+    -webkit-user-select:none; user-select:none;
+  }
+  button:hover:not(:disabled){ background:var(--paper); border-color:var(--cinnabar); color:var(--cinnabar); transform:translateY(-1px); box-shadow:0 3px 0 var(--cinnabar-deep); }
+  button:active:not(:disabled){transform:translateY(1px); box-shadow:0 1px 0 var(--ink-soft);}
+  button:disabled{opacity:.35; cursor:not-allowed;}
+  button.primary{ background:var(--cinnabar); border-color:var(--cinnabar-deep); color:var(--paper-light); box-shadow:0 3px 0 var(--cinnabar-deep); }
+  button.primary:hover:not(:disabled){ background:var(--cinnabar-deep); color:var(--paper-light); border-color:var(--cinnabar-deep); transform:translateY(-1px); }
+  #btnSound{font-size:13px; padding:10px 13px; min-width:62px;}
+  /* 音量滑轨组 */
+  .volctrl{
+    display:flex; flex-direction:column; gap:3px; align-items:stretch;
+    background:var(--paper-light); border:1.5px solid var(--ink-soft);
+    border-radius:4px; padding:5px 9px; box-shadow:0 2px 4px var(--shadow);
+  }
+  .volrow{ display:flex; align-items:center; gap:7px; }
+  .volrow>span{ font-size:12px; line-height:1; width:14px; text-align:center; }
+  .volrow input[type=range]{
+    -webkit-appearance:none; appearance:none;
+    width:110px; height:16px; background:transparent; margin:0; padding:0; cursor:pointer;
+  }
+  .volrow input[type=range]::-webkit-slider-runnable-track{
+    height:5px; border-radius:3px;
+    background:linear-gradient(90deg, var(--cinnabar), var(--cinnabar-deep));
+    background:var(--paper-dark);
+  }
+  .volrow input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:13px; height:13px; border-radius:50%; margin-top:-4px;
+    background:var(--cinnabar); border:2px solid var(--paper-light);
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .volrow input[type=range]::-moz-range-track{ height:5px; border-radius:3px; background:var(--paper-dark); }
+  .volrow input[type=range]::-moz-range-thumb{
+    width:11px; height:11px; border-radius:50%;
+    background:var(--cinnabar); border:2px solid var(--paper-light);
+  }
+  @media (max-width:640px){
+    .volrow input[type=range]{ width:74px; }
+  }
+  #players{display:flex; gap:14px; width:100%; max-width:600px; margin-bottom:12px;}
+  .panel{
+    flex:1; background:var(--paper-light);
+    border:1.5px solid var(--ink-soft); border-radius:4px;
+    padding:12px 14px;
+    box-shadow:0 4px 10px var(--shadow), inset 0 0 0 1px rgba(255,255,255,.4);
+    position:relative;
+    transition:box-shadow .2s, border-color .2s;
+  }
+  .panel::before{
+    content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px;
+    border:1px solid rgba(90,74,58,.25);
+    pointer-events:none; border-radius:2px;
+  }
+  .panel.active{
+    border-color:var(--char-color);
+    animation: turnFlash 1.15s ease-in-out infinite;
+  }
+  @keyframes turnFlash{
+    0%,100%{ box-shadow:0 0 0 0 rgba(0,0,0,0), 0 4px 10px var(--shadow); }
+    50%   { box-shadow:0 0 22px 6px var(--char-color), 0 4px 10px var(--shadow); border-color:var(--char-color); }
+  }
+  .phead{display:flex; align-items:center; gap:9px; font-weight:600; flex-wrap:wrap; font-size:14px; letter-spacing:2px;}
+  .dot{width:19px; height:19px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.3); box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  /* 执黑 / 执白 徽章：摆在名字旁，醒目 */
+  .stoneTag{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 11px 3px 7px; border-radius:999px;
+    font-size:13px; font-weight:900; letter-spacing:1px; line-height:1;
+    margin-left:2px; white-space:nowrap;
+    border:1.5px solid rgba(0,0,0,.5);
+  }
+  .stoneTag i{
+    width:14px; height:14px; border-radius:50%; display:inline-block; flex:none;
+    box-shadow:inset 0 0 2px rgba(255,255,255,.6);
+  }
+  .stoneTag.dark{ background:#1a1a1c; color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.5); }
+  .stoneTag.dark i{ background:radial-gradient(circle at 35% 30%, #6a6a6e, #0a0a0b 70%); border:1px solid #000; }
+  .stoneTag.light{ background:#f4efe6; color:#20242a; box-shadow:0 1px 4px rgba(0,0,0,.35), inset 0 0 0 1px #fff; }
+  .stoneTag.light i{ background:radial-gradient(circle at 35% 30%, #ffffff, #cfcfcf 75%); border:1px solid #b9b2a6; }
+  .turn{margin-left:auto; font-size:12px; color:var(--cinnabar); font-weight:700; letter-spacing:1px;}
+  .aiTag{font-size:11px; padding:2px 9px; background:var(--bamboo); color:#fff; border-radius:10px; margin-left:4px; letter-spacing:0;}
+  .thinking{font-size:11px; padding:2px 9px; background:var(--gold); color:#fff; border-radius:10px; margin-left:4px; letter-spacing:0;}
+  .charname{margin-top:7px; font-size:15px; font-weight:700; letter-spacing:3px;}
+  .skilldesc{font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.5;}
+  .charge{height:13px; background:#d8c89e; border-radius:1px; overflow:hidden; margin-top:9px; border:1px solid var(--ink-soft);}
+  .chargebar{height:100%; background:linear-gradient(90deg, #c49770, var(--cinnabar)); width:0%; transition:width .25s;}
+  .chargebar.ready{
+    animation: readyFlash .65s ease-in-out infinite;
+    background:linear-gradient(90deg,#FFE07A,#FFC83D 35%,#FFD86A 55%,#9B7A2A 100%);
+    background-size:200% 100%;
+    box-shadow:0 0 12px 2px rgba(255,200,60,.85), inset 0 0 6px rgba(255,255,200,.7);
+  }
+  @keyframes readyFlash{
+    0%,100%{
+      box-shadow:0 0 4px 1px rgba(255,200,60,.35), inset 0 0 4px rgba(255,240,180,.4);
+      background-position:0% 0%;
+      filter:brightness(1) saturate(1);
+    }
+    50%{
+      box-shadow:0 0 22px 6px rgba(255,210,80,1), inset 0 0 8px rgba(255,255,230,.95);
+      background-position:100% 0%;
+      filter:brightness(1.25) saturate(1.3);
+    }
+  }
+  .chargestat{font-size:11px; color:var(--ink-soft); margin-top:5px; letter-spacing:2px;}
+  .chargestat.ready{ color:#A87816; font-weight:800; text-shadow:0 0 5px rgba(255,200,60,.9); }
+  .lives{font-size:17px; color:var(--cinnabar); letter-spacing:4px; margin-top:7px; font-weight:bold;}
+  .panel.freezing{ border-color:#8fd6ff; box-shadow:0 0 18px 2px rgba(140,220,255,.8), inset 0 0 14px rgba(160,225,255,.55); }
+  .panel.freezing::after{
+    content:""; position:absolute; inset:-3px; border-radius:6px; pointer-events:none;
+    border:1px solid transparent;
+    background:linear-gradient(0deg, transparent 20%, rgba(150,220,255,.4) 50%, transparent 80%);
+    background-size:100% 220%; animation: iceSheen 1.1s linear infinite;
+  }
+  @keyframes iceSheen{ 0%{background-position:0 -120%;} 100%{background-position:0 120%;} }
+  .tigerClawEl{ position:absolute; right:2px; top:2px; font-size:52px; pointer-events:none; z-index:5; }
+
+  /* 自适应缩放容器：内里仍是 524px 原尺寸，靠 transform 整体缩放，
+     特效层与点击坐标（用 getBoundingClientRect）会跟着一起缩，不会错位 */
+  #boardFit{ width:100%; display:flex; justify-content:center; overflow-x:auto; overflow-y:hidden; }
+  #boardBox{ flex:none; }                                   /* 布局盒：尺寸随缩放同步，避免窄屏出现空滚动条 */
+  /* width:max-content —— 否则块级元素会被 #boardBox 的显式宽度"撑回"，
+     缩过一次后量到的"原始尺寸"就变小了，再也放不大回去 */
+  #boardWrap{ transform-origin: top left; flex:none; width:max-content; transform:scale(var(--bs,1)); }
+  #zoomBar{ display:inline-flex; align-items:center; gap:5px; margin-left:2px; }
+  #zoomBar button{ padding:5px 9px !important; font-size:13px !important; letter-spacing:0 !important; min-width:30px; }
+  #zoomVal{ font-size:12px; color:var(--ink-soft); min-width:38px; text-align:center; font-weight:700; }
+  /* 麦克风电平条：喊招时能看见自己有没有被听见 */
+  #micLevel{
+    display:inline-block; width:46px; height:9px; border-radius:5px;
+    border:1px solid rgba(0,0,0,.3); background:#d8c89e; overflow:hidden; vertical-align:middle;
+  }
+  #micLevel i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#6b8e3d,#b8902e,#a83232); transition:width .08s linear; }
+  #boardWrap{
+    background:linear-gradient(135deg, var(--wood), var(--wood-dark));
+    padding:16px; border-radius:8px;
+    box-shadow:0 12px 32px rgba(0,0,0,.28), inset 0 0 10px rgba(0,0,0,.25);
+    border:4px double var(--ink-soft);
+    position:relative;
+  }
+  #boardWrap::before{ content:""; position:absolute; inset:8px; border:1px solid rgba(0,0,0,.22); pointer-events:none; border-radius:4px; }
+  canvas{display:block; cursor:pointer; border-radius:4px; box-shadow:inset 0 0 14px rgba(0,0,0,.18); touch-action:manipulation;}
+
+  /* ===== 技能特效叠加层 ===== */
+  #fxTitle{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    pointer-events:none; z-index:3; white-space:nowrap;
+    font-family:"STXingkai","华文行楷","STKaiti","KaiTi","楷体","Songti SC",serif;
+    font-size:78px; font-weight:900; letter-spacing:12px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* 主题色光晕 */
+  #fxTitle::before{
+    content:""; position:absolute; left:50%; top:50%;
+    width:430px; height:430px; margin:-215px 0 0 -215px; border-radius:50%;
+    background:radial-gradient(circle, var(--tc,#fff) 0%, rgba(255,255,255,0) 62%);
+    opacity:0; pointer-events:none; mix-blend-mode:screen;
+  }
+  #fxTitle.show::before{ animation: fxHalo 1.7s ease-out forwards; }
+  @keyframes fxHalo{
+    0%{ opacity:0; transform:scale(.2); }
+    22%{ opacity:.5; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.55); }
+  }
+  /* 逐字入场：白→主题色渐变字身 + 白色描边 + 同色外发光 */
+  #fxTitle .ch{
+    display:inline-block; opacity:0;
+    background-image:linear-gradient(180deg,#ffffff 0%, #ffffff 16%, var(--tc,#fff) 58%, var(--tc2,#fff) 100%);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    -webkit-text-stroke:2.5px rgba(255,255,255,.92);
+    paint-order:stroke fill;
+    will-change:transform,opacity,filter;
+  }
+  #fxTitle.show .ch{ animation: chIn 1.75s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes chIn{
+    0%   { opacity:0; transform:translateY(-78px) scale(.32) rotate(-16deg); filter:blur(12px) drop-shadow(0 0 0 rgba(0,0,0,0)); }
+    18%  { opacity:1; transform:translateY(7px) scale(1.18) rotate(3deg); filter:blur(0) drop-shadow(0 0 20px var(--tc,#fff)); }
+    32%  { transform:translateY(0) scale(1) rotate(0); filter:blur(0) drop-shadow(0 0 24px var(--tc,#fff)) drop-shadow(0 6px 12px rgba(0,0,0,.55)); }
+    72%  { opacity:1; transform:translateY(0) scale(1.03); filter:blur(0) drop-shadow(0 0 30px var(--tc,#fff)) drop-shadow(0 6px 12px rgba(0,0,0,.55)); }
+    100% { opacity:0; transform:translateY(-28px) scale(1.2); filter:blur(4px) drop-shadow(0 0 40px var(--tc,#fff)); }
+  }
+  /* 落款小字（技能说明） */
+  #fxTitle .sub{
+    position:absolute; left:50%; top:100%; transform:translateX(-50%);
+    margin-top:6px; font-size:15px; letter-spacing:6px; font-weight:700;
+    font-family:"STKaiti","KaiTi",serif; color:#fff; opacity:0;
+    text-shadow:0 0 12px var(--tc,#fff), 0 2px 6px rgba(0,0,0,.6); white-space:nowrap;
+  }
+  #fxTitle.show .sub{ animation: subIn 1.75s ease both; }
+  @keyframes subIn{ 0%{opacity:0;} 26%{opacity:.95;} 78%{opacity:.9;} 100%{opacity:0;} }
+  /* 全盘主题色渲染 */
+  #fxLayer.tint::after{
+    content:""; position:absolute; inset:0; border-radius:4px; pointer-events:none;
+    background:radial-gradient(circle at 50% 46%, var(--c,transparent) 0%, rgba(0,0,0,0) 68%);
+    mix-blend-mode:overlay; animation: fxTint 1.5s ease-out forwards;
+  }
+  @keyframes fxTint{ 0%{opacity:0;} 20%{opacity:.75;} 100%{opacity:0;} }
+  #fxLayer{
+    position:absolute; left:16px; top:16px; right:16px; bottom:16px; overflow:hidden;
+    pointer-events:none; z-index:2; border-radius:4px;
+  }
+  #fxTitle{ top:50%; left:50%; }
+  #taiji{ left:50%; top:50%; }
+  /* 通用飘散元素 */
+  .fxdust{ position:absolute; border-radius:50%; opacity:0; animation: fxFly 1s ease-out forwards; box-shadow:0 0 10px 3px rgba(255,255,255,.45); }
+  @keyframes fxFly{ 0%{opacity:0; transform:translate(0,0) scale(1);} 12%{opacity:.9;} 100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(.2);} }
+  /* 棋盘晃动 */
+  #boardWrap.shake{ animation: boardShake .6s ease; }
+  /* 晃动时须带上缩放系数，否则会把棋盘弹回原始大小 */
+  @keyframes boardShake{
+    0%,100%{transform:scale(var(--bs,1)) translate(0,0) rotate(0);} 12%{transform:scale(var(--bs,1)) translate(-7px,3px) rotate(-1.2deg);}
+    25%{transform:scale(var(--bs,1)) translate(7px,-4px) rotate(1.3deg);} 38%{transform:scale(var(--bs,1)) translate(-6px,-3px) rotate(-1deg);}
+    50%{transform:scale(var(--bs,1)) translate(5px,4px) rotate(1deg);} 62%{transform:scale(var(--bs,1)) translate(-4px,2px) rotate(-.6deg);} 75%{transform:scale(var(--bs,1)) translate(3px,-2px) rotate(.5deg);}
+  }
+  /* 火焰环 */
+  #fxLayer.flame i{ position:absolute; bottom:0; width:14px; height:24px; border-radius:50% 50% 50% 50%/60% 60% 40% 40%; background:radial-gradient(circle at 50% 80%, #fff6b0, var(--c,#e62828) 45%, rgba(120,30,0,0)); animation: fxFlame .7s ease-out infinite alternate; filter:blur(1px); opacity:0; }
+  @keyframes fxFlame{
+    0%{ transform:translateY(0) scaleY(1); opacity:0;}
+    40%{ opacity:.95;}
+    100%{ transform:translateY(-18px) scaleY(1.5); opacity:0;}
+  }
+  /* 冰冻冰晶飞雪 */
+  #fxLayer.frost i{ position:absolute; width:9px; height:9px; background:rgba(160,225,255,.95); opacity:0; animation: fxSnow 1.4s linear forwards; }
+  @keyframes fxSnow{
+    0%{ transform:translateY(-20px) rotate(0); opacity:0;}
+    10%{opacity:.95;} 90%{opacity:.95;}
+    100%{ transform:translateY(560px) rotate(360deg); opacity:0;}
+  }
+  #fxLayer.frost b{ position:absolute; color:rgba(200,240,255,.95); font-size:20px; text-shadow:0 0 8px rgba(255,255,255,.8); animation: fxSnow2 1.5s ease-in forwards; opacity:0; }
+  @keyframes fxSnow2{ 0%{transform:translate(0,0); opacity:0;} 12%{opacity:1;} 100%{transform:translate(var(--dx),var(--dy)); opacity:0;} }
+  /* 北斗星辰 */
+  #fxLayer.star i{ position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; box-shadow:0 0 10px 3px rgba(200,220,255,.9); opacity:0; animation: fxTwinkle .9s ease forwards; }
+  @keyframes fxTwinkle{ 0%{opacity:0; transform:scale(0);} 40%{opacity:1; transform:scale(1.4);} 100%{opacity:0; transform:scale(.2);} }
+  /* 太极旋转 */
+  #taiji{ position:absolute; left:50%; top:50%; width:380px; height:380px; margin:-190px 0 0 -190px; opacity:0; z-index:2; pointer-events:none; overflow:hidden; }
+  #taiji img{ display:block; width:100%; height:100%; object-fit:contain; filter: drop-shadow(0 0 28px rgba(255,255,255,.5)) drop-shadow(0 0 18px rgba(0,0,0,.45)); }
+  #taiji.show{ animation: taijiSpin 2.2s ease forwards; }
+  @keyframes taijiSpin{
+    0%{ opacity:0; transform:rotate(0) scale(.2);}
+    20%{ opacity:.95; transform:rotate(90deg) scale(1);}
+    78%{ opacity:1; transform:rotate(360deg) scale(1.02);}
+    100%{ opacity:0; transform:rotate(540deg) scale(1.4);}
+  }
+  /* 沙暴粒 */
+  #fxLayer.sand i{ position:absolute; width:5px; height:3px; border-radius:40%; background:var(--c,#c9a05a); opacity:0; animation: fxSand .9s linear forwards; }
+  @keyframes fxSand{ 0%{transform:translate(var(--dx),var(--dy)) ; opacity:0;} 15%{opacity:.9;} 100%{transform:translate(calc(var(--dx)*1.6),calc(var(--dy)*1.6)); opacity:0;} }
+  /* 翠鸟（择木） */
+  #fxLayer.bird i{ position:absolute; font-style:normal; animation: fxBird 1.4s ease-out forwards; opacity:0; }
+  @keyframes fxBird{ 0%{ transform:translate(0,0) scale(.5) rotate(-8deg); opacity:0;} 15%{opacity:1;} 100%{ transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(4deg); opacity:0;} }
+  /* 老虎爪痕 */
+  #fxLayer.tiger i{ position:absolute; font-style:normal; font-size:64px; opacity:0; animation: fxFadeSlash .7s ease forwards; }
+  @keyframes fxFadeSlash{ 0%{opacity:0; transform:scale(.5) rotate(-14deg);} 30%{opacity:1; transform:scale(1.15) rotate(0);} 100%{opacity:0; transform:scale(1.3) rotate(6deg);} }
+  /* 落叶生长 */
+  #fxLayer.grow b{ position:absolute; color:var(--c,#7ed957); font-style:normal; font-weight:900; opacity:0; animation: fxGrow .8s ease forwards; }
+  @keyframes fxGrow{ 0%{ transform:translateY(40px) scale(.2); opacity:0;} 40%{opacity:1;} 100%{ transform:translateY(0) scale(1); opacity:0;} }
+  #fxLayer.grow i{ position:absolute; border-left:2px solid var(--c,#7ed957); height:0; opacity:0; animation: fxSprout 1.2s ease forwards; }
+  @keyframes fxSprout{ 0%{height:0; opacity:.8;} 100%{height:90px; opacity:0;} }
+  /* 编钟金字 */
+  #fxLayer.bell i{ position:absolute; color:var(--c,#1f48ff); font-style:normal; font-weight:900; opacity:0; animation: fxPulse .9s ease forwards; }
+  @keyframes fxPulse{ 0%{opacity:0; transform:scale(.4);} 30%{opacity:1; transform:scale(1.3);} 60%{opacity:.9;} 100%{opacity:0; transform:scale(1.5);} }
+
+  #status{
+    margin-top:14px; min-height:24px; font-size:15px; text-align:center;
+    color:var(--ink); max-width:600px; font-weight:600; letter-spacing:2px;
+    padding:10px 16px; background:var(--paper-light);
+    border:1px solid var(--ink-soft); border-radius:2px;
+    box-shadow:0 2px 0 var(--ink-soft);
+  }
+  #status .who{ color:var(--cinnabar); font-weight:700; }
+  .rules{max-width:600px; margin-top:18px; font-size:12.5px; color:var(--ink-soft); line-height:1.85;}
+  .rules summary{cursor:pointer; color:var(--cinnabar); font-weight:700; font-size:14px; letter-spacing:3px; padding:4px 0;}
+  #overlay{position:fixed; inset:0; background:rgba(30,20,12,.68); display:none; align-items:center; justify-content:center; padding:18px; z-index:50;}
+  #overlay.show{display:flex;}
+  .modal{ background:var(--paper-light); border-radius:6px; padding:24px; max-width:720px; width:100%; max-height:92vh; overflow:auto; box-shadow:0 24px 70px rgba(0,0,0,.4); border:3px double var(--ink); position:relative; }
+  .modal.wide{max-width:920px;}
+  .modal h2{margin:0 0 8px; text-align:center; font-family:"STKaiti","STXingkai",serif; letter-spacing:6px; color:var(--cinnabar); font-size:22px; font-weight:700;}
+  .modal p{text-align:center; color:var(--ink-soft); margin:6px 0 14px; font-size:12.5px; letter-spacing:2px;}
+  .chantbox{ display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border-radius:4px; border:1px solid rgba(0,0,0,.25); background:rgba(255,255,255,.45); }
+  .chantbox input{ width:88px; padding:5px 7px; border:none; outline:none; background:transparent; font-family:inherit; letter-spacing:2px; color:var(--ink); font-size:13px; }
+  .chantbox input::placeholder{ color:rgba(80,40,20,.35); }
+  .chantbox button{ padding:4px 8px !important; font-size:13px !important; }
+  .chantbox.flash{ animation: chantFlash .55s ease; }
+  @keyframes chantFlash{ 0%{ box-shadow:0 0 0 0 rgba(255,200,40,.0);} 50%{ box-shadow:0 0 18px 4px rgba(255,200,40,.85);} 100%{ box-shadow:0 0 0 0 rgba(255,200,40,.0);} }
+  .sides{display:flex; flex-wrap:wrap; justify-content:center; align-items:stretch;}
+  .side{
+    flex:1 1 0; min-width:262px; max-width:420px;
+    padding:15px 14px 17px; margin:0; box-sizing:border-box;
+    border:1px solid rgba(120,72,40,.32); border-radius:6px;
+    background:linear-gradient(180deg, rgba(255,252,243,.92), rgba(244,233,213,.92));
+    box-shadow:0 3px 10px rgba(90,55,25,.10), inset 0 0 0 1px rgba(255,255,255,.6);
+    position:relative;
+  }
+  .side + .side{ margin-left:26px; }
+  /* 两侧之间的竖虚线，分隔更醒目 */
+  .side + .side::before{
+    content:""; position:absolute; left:-13px; top:6px; bottom:6px; width:1px;
+    background:repeating-linear-gradient(180deg, rgba(150,90,45,.5) 0 6px, rgba(150,90,45,0) 6px 13px);
+  }
+  .side h3{
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    margin:0 0 13px; padding-bottom:10px; letter-spacing:4px; font-weight:700;
+    font-size:15.5px; color:var(--ink);
+    border-bottom:1px dashed rgba(140,84,44,.4);
+  }
+  .side h3 .dot{ width:13px; height:13px; border-radius:50%; display:inline-block; }
+  .side h3 .dot.b{ background:radial-gradient(circle at 34% 30%, #7a7a7a, #0b0b0b 68%); box-shadow:0 1px 2px rgba(0,0,0,.45); }
+  .side h3 .dot.w{ background:radial-gradient(circle at 34% 30%, #fff, #cfc6b4 72%); box-shadow:0 1px 2px rgba(0,0,0,.3); border:1px solid rgba(0,0,0,.28); }
+  .cards{display:flex; gap:11px; justify-content:center; flex-wrap:wrap; align-items:stretch;}
+  .card{
+    flex:0 1 126px; width:auto; min-width:86px; min-height:126px; box-sizing:border-box;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+    padding:14px 10px; text-align:center; cursor:pointer; color:#fff;
+    background:var(--c, #8a8a8a); border:1px solid rgba(0,0,0,.32); border-radius:8px;
+    position:relative; overflow:hidden;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.22), 0 4px 10px rgba(0,0,0,.22);
+    transition:transform .18s, box-shadow .18s;
+  }
+  .card::before{ content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(158deg, rgba(255,255,255,.40), rgba(255,255,255,0) 46%, rgba(0,0,0,.32)); }
+  .card::after{ content:""; position:absolute; right:-26px; bottom:-26px; width:68px; height:68px;
+    border-radius:50%; background:rgba(255,255,255,.10); pointer-events:none; transition:background .18s; }
+  .card:hover{ transform:translateY(-4px); box-shadow:inset 0 0 0 2px rgba(255,255,255,.32), 0 10px 20px rgba(0,0,0,.3); }
+  .card.sel{
+    border-color:var(--gold);
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.5), 0 0 0 3px var(--gold), 0 10px 22px rgba(0,0,0,.32);
+  }
+  .card.sel::after{ background:rgba(255,255,255,.2); }
+  .card.locked{ cursor:default; }
+  .card.ghost{ cursor:default; color:#8d8271; box-shadow:inset 0 0 0 2px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.10); }
+  .card.ghost::before{ background:linear-gradient(158deg, rgba(255,255,255,.5), rgba(255,255,255,0) 46%, rgba(0,0,0,.06)); }
+  .card .cn{ position:relative; font-weight:700; font-size:17px; letter-spacing:3px; text-shadow:0 1px 3px rgba(0,0,0,.45); font-family:"STKaiti",serif; }
+  .card .cd{ position:relative; font-size:11.5px; line-height:1.55; opacity:.96; }
+  .card.ghost .cn{ text-shadow:none; }
+  .modal .actions{margin-top:22px; text-align:center;}
+  .winbig{font-size:30px; text-align:center; margin:10px 0; font-family:"STKaiti","STXingkai",serif; letter-spacing:5px; color:var(--cinnabar); font-weight:700;}
+  .lifeBoard{text-align:center; font-size:17px; margin:8px 0; letter-spacing:5px; color:var(--cinnabar); font-weight:600;}
+  /* 续战提示：浮于棋盘上的短横幅，无按钮、不阻挡操作 */
+  .roundToast{
+    position:absolute; left:50%; top:44%; transform:translate(-50%,-50%);
+    padding:13px 24px; border-radius:6px; pointer-events:none; z-index:9; white-space:nowrap;
+    background:linear-gradient(180deg, rgba(42,26,15,.98), rgba(22,13,7,.98));
+    color:#f6e7c4; font-family:"STKaiti",serif; font-size:19px; letter-spacing:4px; font-weight:700;
+    border:2px solid var(--gold); box-shadow:0 12px 34px rgba(0,0,0,.55), inset 0 0 18px rgba(255,200,80,.14);
+    animation: toastIn .32s ease, toastOut .55s ease 1.75s forwards;
+  }
+  @keyframes toastIn{ from{opacity:0; transform:translate(-50%,-50%) scale(.82);} to{opacity:1; transform:translate(-50%,-50%) scale(1);} }
+  @keyframes toastOut{ to{opacity:0; transform:translate(-50%,-50%) scale(1.06);} }
+  .mode-cards{display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin:20px 0 8px;}
+  .mode-card{ width:235px; padding:26px 18px; border:2px solid var(--ink-soft); border-radius:4px; cursor:pointer; background:var(--paper-light); transition:.18s; text-align:center; position:relative; }
+  .mode-card:hover{border-color:var(--cinnabar); transform:translateY(-4px); box-shadow:0 8px 20px rgba(168,50,50,.2);}
+  .mode-card .icon{font-size:46px; margin-bottom:10px;}
+  .mode-card .mtitle{font-weight:700; font-size:18px; margin-bottom:8px; letter-spacing:5px; color:var(--cinnabar); font-family:"STKaiti",serif;}
+  .mode-card .mdesc{font-size:12.5px; color:var(--ink-soft); line-height:1.7; letter-spacing:1px;}
+
+  /* ===== 小屏适配 ===== */
+  @media (max-width:560px){
+    body{ padding:10px 6px 30px; }
+    h1{ font-size:26px; letter-spacing:8px; }
+    h1::after{ right:-32px; width:28px; height:28px; font-size:13px; }
+    .sub{ font-size:11.5px; letter-spacing:3px; margin:6px 0 10px; }
+    .toolbar{ gap:7px; margin-bottom:10px; }
+    button{ font-size:14px; padding:9px 13px; letter-spacing:2px; }
+    #players{ gap:9px; margin-bottom:9px; }
+    .panel{ padding:9px 10px; }
+    .phead{ font-size:13px; letter-spacing:1px; gap:6px; }
+    .stoneTag{ font-size:12px; padding:3px 9px 3px 6px; }
+    .charname{ font-size:14px; letter-spacing:2px; }
+    .skilldesc{ font-size:11px; }
+    #status{ font-size:13.5px; padding:8px 12px; margin-top:10px; }
+    .rules{ font-size:12px; }
+    .card{ flex:0 1 104px; min-width:88px; min-height:112px; padding:11px 8px; }
+    .card .cn{ font-size:15px; letter-spacing:2px; }
+    .card .cd{ font-size:10.5px; }
+    .mode-card{ width:100%; max-width:280px; padding:20px 14px; }
+    .roundToast{ font-size:15px; letter-spacing:2px; padding:10px 14px; max-width:92%; white-space:normal; text-align:center; }
+  }
+  /* 两侧并排时才有竖分隔线；窄屏改为上下排布 */
+  @media (max-width:860px){
+    .side + .side{ margin-left:0; margin-top:20px; }
+    .side + .side::before{ display:none; }
+    .side{ flex:1 1 100%; max-width:none; }
+  }
+</style>
+</head>
+<body data-page-node-id="GGqRJCvAF7UHKYGX0W4Qjm">
+<header data-page-node-id="TKNEW2eyOrP45pE7LakN6o">
+  <h1 data-page-node-id="saukGuncksyKmfVMr6V2iq">技能五子棋</h1>
+  <div class="sub" data-page-node-id="HgemrB1eANXlTKLLtr2Lpz">— 江湖棋局 · 武林争锋 —</div>
+</header>
+
+<div class="toolbar" data-page-node-id="nSY7t2xNcvlEXc6VSGJs4H">
+  <button id="btnSkill" data-page-node-id="2FRWzzEJ1KLOKqr6QrPEjs">施展技能</button>
+  <button id="btnCancel" style="display:none;" data-page-node-id="OywSUVTmyYeIFXQIXA4hF0">收招</button>
+  <button id="btnRestart" data-page-node-id="n7vb3DP3N6SVbDdsSR9UhF">重新开局</button>
+  <button id="btnSound" title="音效开关" data-page-node-id="frLWjZFtljB5JzjOrrqeCB">🔊 音效</button>
+  <button id="btnMusic" title="背景音乐开关" data-page-node-id="mUsIc1xNcvlEXc6VSGJs4H">🎵 音乐</button>
+  <span class="volctrl" title="音量调节">
+    <label class="volrow"><span>🎵</span><input id="volBgm" type="range" min="0" max="100" value="84" /></label>
+    <label class="volrow"><span>🔊</span><input id="volSfx" type="range" min="0" max="100" value="100" /></label>
+  </span>
+  <span class="chantbox" data-page-node-id="cMn1t2xNcvlEXc6VSGJs4H">
+    <input id="chantInput" type="text" placeholder="喊出招名…" maxlength="8" autocomplete="off" />
+    <button id="btnChant" title="喊招" data-page-node-id="c2Nt3xNcvlEXc6VSGJs4H">喊</button>
+    <button id="btnVoice" title="开启／关闭口呼喊招" data-page-node-id="cVNt4xNcvlEXc6VSGJs4H">🎤</button>
+    <span id="micLevel" title="麦克风电平"><i></i></span>
+  </span>
+  <span id="zoomBar" title="调整棋盘大小">
+    <button id="btnZoomOut" title="棋盘缩小">－</button>
+    <span id="zoomVal">100%</span>
+    <button id="btnZoomIn" title="棋盘放大">＋</button>
+    <button id="btnZoomFit" title="恢复自适应大小">⤢</button>
+  </span>
+</div>
+
+<div id="players" data-page-node-id="qnKh57JHDdSqE8pnasOuFI">
+  <div id="panel1" class="panel" data-page-node-id="mee33MyrxnSBftdDJzmDvg"></div>
+  <div id="panel2" class="panel" data-page-node-id="1y7QO7B4RqRnClexIQnvXO"></div>
+</div>
+
+<div id="boardFit"><div id="boardBox"><div id="boardWrap" data-page-node-id="bw83TGeAOpkjCZHLoCcApA"><canvas id="board" data-page-node-id="BBHe9gOwyOd9gdVAFSqIA3"></canvas>
+  <div id="fxTitle" data-page-node-id="fxTitle01"></div>
+  <div id="fxLayer" data-page-node-id="fxLayer01"></div>
+</div></div></div>
+
+<div id="status" data-page-node-id="rdXkheKylO3Zne9q8VMGwK"></div>
+
+<details class="rules" data-page-node-id="LKoBBrswgFXs5pPe8iYdWY">
+  <summary data-page-node-id="RQKVcIOrUhbLcS7DCiXAaX">武学要诀</summary>
+  <p data-page-node-id="tTfzO2D67XkgYk2V4ruO3z">① 开局先选「江湖双侠」或「人机论剑」模式，双方各从随机抽出的三门绝学中择一。</p>
+  <p data-page-node-id="tnTB5qotLbZ9dH2MieQtLj">② 执黑者先手（若电脑执黑，则电脑先手）。</p>
+  <p data-page-node-id="w9SUVMXiYPq38PCpFA83a7">③ 寻常落子蓄气 +6，连成三子额外 +15，连成四子额外 +30（取最高连线）。蓄满 100 即可施展本门绝学；<b>蓄满后不再累积，施展之后清零，从头再蓄</b>。</p>
+  <p data-page-node-id="2Jm8IZTLALkF8MK4bEyNMh">④ <b data-page-node-id="XcAvg6WFYaf5QaydvckUJj">绝学须于本回合落子之前施展</b>。施展后除「星火燎原」连落两子之外，均<b>仍须落一子方算回合结束</b>（含「两级反转」易位之后）。出招不必点任何按钮：<b>轮到你且蓄力满时，直接喊「奥义／绝学／技能 ＋ 招名」即出招</b>（也仍可点「施展技能」、在喊招框输入、或点面板上的绝学名）。首次触碰页面即自动开启聆听；若浏览器不支持或麦克风被拒，会自动改用「听见喊声即出招」的声控方式。</p>
+  <p data-page-node-id="GOq8w754QuRDmivvUAgf4R">⑤ 率先连成五子者，对手失一命，棋盘不重置，战斗继续。某方三命皆失则败北。</p>
+  <p data-page-node-id="4Mi6CRQTIxzMmjDfV8M3OC">⑥ 已成之五子以<b data-page-node-id="EILV1DIvDmOBokQ00qK1Ew">铁链锁住</b>：被锁之子不可被任何技能改变（移、易帜、翻转皆不能）。新的五连<b>可以含有被锁之子</b>，但<b>不得包含同一串锁链中的两枚</b>；若新五连里有两枚同串锁子，则此五连不作数。</p>
+  <p data-page-node-id="r9DVJjPeE9HlApvwXbEeMy">⑦ 各门绝学：飞沙走石 · 静如止水 · 力拔山兮 · 东山再起（悔棋一步：实悔两步）· 移星换斗 · <b data-page-node-id="730NHanTs9iMxUDSjL8ZLC">铜墙铁壁</b>（封一空点，<b>本局双方皆不得落</b>）· 星火燎原（横竖斜相邻皆算）· <b data-page-node-id="rt6t9mLKP7HzbM1Nr0kjKZ">择木而栖</b>（令对手一子易帜）· <b data-page-node-id="G2W91D2jOyKnvB5GHXF3oc">调虎离山</b>（封对手<b>三个回合</b>不得施展绝学）· <b data-page-node-id="730NHanTs9iMxUDSjL8ZLC">两级反转</b>（全盘未锁之黑白易位）。</p>
+</details>
+
+<div id="overlay" data-page-node-id="UXa8wqxIKQ6fVdcJXgy3h6"><div class="modal" id="modal" data-page-node-id="rSgiUx2YA2FIJKexpBIjao"></div></div>
+<script>
+const N = 15, SIZE = 524, PAD = 24, CELL = 34;
+const EMPTY = 0, P1 = 1, P2 = 2;
+
+// 十门绝学（无角色概念，技能即一切），每门有专属主题色
+const SKILLS = [
+  { id:'feisha',    name:'飞沙走石', color:'#e6a220', skill:'feisha',    desc:'消灭对手一颗棋子' },
+  { id:'jingru',    name:'静如止水', color:'#20b8e6', skill:'jingru',    desc:'对手禁走一回合' },
+  { id:'liba',      name:'力拔山兮', color:'#e02480', skill:'liba',      desc:'强制全盘重启' },
+  { id:'dongshan',  name:'东山再起', color:'#7ed957', skill:'dongshan',  desc:'悔棋一步' },
+  { id:'yixing',    name:'移星换斗', color:'#b174e7', skill:'yixing',    desc:'移动对手一子至空点' },
+  { id:'tongqiang', name:'铜墙铁壁', color:'#1f48ff', skill:'tongqiang', desc:'封一空点，本局双方皆不得落子' },
+  { id:'xinghuo',   name:'星火燎原', color:'#e62828', skill:'xinghuo',   desc:'相邻两空点各落一枚己子（横竖斜皆可）' },
+  { id:'zemo',      name:'择木而栖', color:'#2e6417', skill:'zemo',      desc:'令对手一颗棋子易帜归我' },
+  { id:'diaohu',    name:'调虎离山', color:'#ff7818', skill:'diaohu',    desc:'封对手三个回合施展绝学' },
+  { id:'liangji',   name:'两级反转', color:'#111111', skill:'liangji',   desc:'全盘棋子黑白易位' },
+];
+// 兼容历史调用名
+const CHARACTERS = SKILLS;
+
+/* ===================== 音效与 BGM ===================== */
+const Sound = {
+  ctx: null,
+  enabled: true,
+  _unlocked: false,
+  _bgmInit: false,
+  _bgmList: [],      // 循环曲
+  _bgmIdx: 0,
+  _bgmCur: null,
+  _bgmOn: true,        // 音乐开关
+  _bgmPlaying: false,
+  _bgmWd: null,
+  _bgmVol: 0.84,   // 三首 BGM 已做统一响度母带（3秒中位 RMS 约 -19dB），故基准音量相应提高以保持原有听感
+  _sfxVol: 1,      // 音效总音量（滑轨 0~1），作用于合成音效 + mp3 音效
+  _sfxGain: null,  // 合成音效的总输出增益（主声道母线），调滑轨即实时改变所有在放音效
+  /* 合成音效总输出母线：所有 WebAudio 生成的音效（落子外的合成声/锁链/震屏等）都汇聚到它，
+     这样一条 gain 就能统控"音效音量"，而不必逐处去乘系数。 */
+  _fxOut(){
+    try{
+      const ac = this.ensure(); if(!ac) return null;
+      if(!this._sfxGain){
+        this._sfxGain = ac.createGain();
+        this._sfxGain.gain.value = Math.max(0, Math.min(1, this._sfxVol));
+        this._sfxGain.connect(ac.destination);
+      }
+      return this._sfxGain;
+    }catch(e){ return null; }
+  },
+  /* mp3 音效（落子/技能）统一按用户音效音量缩放 */
+  _v(base){ return Math.max(0, Math.min(1, (base || 0) * this._sfxVol)); },
+  /* 移动端（尤其 iOS Safari）播放 <audio> 时要求服务端支持 HTTP Range 分片，
+     不少静态托管并不支持，表现就是「电脑有声、手机完全没声」。
+     对策：先用 fetch 把音频整体取回，转成 Blob 本地地址再播，绕开 Range 限制。 */
+  _blobCache: {},
+  _blobFail: {},
+  _unlockEl: null,
+  _silentWav: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
+  _loadBlob(src){
+    if(this._blobCache[src]) return this._blobCache[src];
+    if(this._blobFail[src]) return Promise.reject(new Error('blob fail ' + src));
+    const self = this;
+    const p = new Promise(function(resolve, reject){
+      try{
+        if(typeof fetch !== 'function' || typeof URL === 'undefined' || !URL.createObjectURL){ reject(new Error('no fetch/blob')); return; }
+        fetch(src, { cache: 'force-cache' }).then(function(r){
+          if(!r.ok) throw new Error('HTTP ' + r.status);
+          return r.blob();
+        }).then(function(b){
+          if(!b || !b.size) throw new Error('empty blob');
+          resolve(URL.createObjectURL(b));
+        }).catch(function(e){ self._blobFail[src] = true; reject(e); });
+      }catch(e){ self._blobFail[src] = true; reject(e); }
+    });
+    this._blobCache[src] = p;
+    return p;
+  },
+  /* 建立音频元素：先挂原始地址，Blob 就绪后（若尚未开播）换成 Blob 地址 */
+  _mkAudio(src, onReady){
+    const a = new Audio();
+    a.preload = 'auto'; a.loop = false;
+    a._ready = false;
+    try{
+      a.setAttribute('playsinline','');
+      a.setAttribute('webkit-playsinline','');
+      a.setAttribute('x5-playsinline','');
+      a.setAttribute('x5-video-player-type','h5-page');
+    }catch(e){}
+    try{ a.src = src; a.load(); }catch(e){}
+    const self = this;
+    this._loadBlob(src).then(function(u){
+      try{
+        if(!a.paused && a.currentTime > 0) return;   // 已在正常播放，不再换源打断
+        a.src = u; a._ready = true; a.load();
+      }catch(e){}
+      if(onReady) try{ onReady(a); }catch(e){}
+    }).catch(function(){
+      // 取回失败（如 file:// 下 fetch 被拦）就沿用原始地址，未必真的没声，故不在此处报警
+      a._ready = true;
+      if(onReady) try{ onReady(a); }catch(e){}
+    });
+    return a;
+  },
+  /* 用户手势内播放一段静音，取得整页的播放授权；
+     之后的 Blob 异步加载完成后再播也就不受手势限制了 */
+  _gestureUnlock(){
+    try{
+      if(!this._unlockEl){
+        this._unlockEl = new Audio(this._silentWav);
+        this._unlockEl.loop = true;
+        this._unlockEl.volume = 0;
+        this._unlockEl.preload = 'auto';
+        try{ this._unlockEl.setAttribute('playsinline',''); }catch(e){}
+      }
+      const p = this._unlockEl.play();
+      if(p && p.catch) p.catch(function(){});
+    }catch(e){}
+  },
+  /* 音频全部取不到时给一句提示（只提示一次） */
+  _audioWarned: false,
+  _warnTimer: null,
+  _audioWarn(){
+    if(this._audioWarned) return;
+    this._audioWarned = true;
+    try{ if(typeof message === 'function') message('音频资源未能载入，请检查网络后重开页面（或点「🔊 音效」重试）'); }catch(e){}
+  },
+
+  ensure(){
+    if(!this.ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) this.ctx = new AC();
+    }
+    if(this.ctx && this.ctx.state === 'suspended'){ try{ this.ctx.resume(); }catch(e){} }
+    return this.ctx;
+  },
+  unlock(){
+    this._unlocked = true;
+    this._loadVol();           // 先读回滑轨偏好，再建音频，保证初始音量正确
+    // 必须在用户手势的同步栈里先播一次静音，Blob 异步就绪后的播放才被授权
+    this._gestureUnlock();
+    // 6 秒后仍无任何声音，才判定为「确实播不出来」并提示（避免误报）
+    if(!this._warnTimer){
+      const self = this;
+      this._warnTimer = setTimeout(function(){
+        if(self.enabled && self._bgmOn && !self._bgmPlaying && !self._bgmIntroPlaying) self._audioWarn();
+      }, 6000);
+    }
+    try{
+      const ac = this.ensure();
+      if(ac){
+        if(ac.state === 'suspended') ac.resume();
+        const buf = ac.createBuffer(1, Math.floor(ac.sampleRate*0.1), ac.sampleRate);
+        const d = buf.getChannelData(0);
+        for(let i=0;i<d.length;i++) d[i]=0;
+        const s = ac.createBufferSource(); s.buffer = buf; s.connect(ac.destination); s.start(0);
+      }
+    }catch(e){}
+    // 每次交互都尝试续播：移动端（iOS/安卓）必须在用户手势的同步调用栈里
+    // 首次调用 play() 才会被授权，之后即可程序化续播。
+    this._initPlace();
+    this._initSfx();
+    this.initBGM();
+    if(this.enabled && this._bgmOn) this._bgmTick();
+  },
+  tone(freq, dur, type, vol){
+    if(!this.enabled) return;
+    type = type || 'sine'; vol = vol || 0.2;
+    try{
+      const ac = this.ensure(); if(!ac) return;
+      const o = ac.createOscillator(); const g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, ac.currentTime);
+      g.gain.setValueAtTime(0, ac.currentTime);
+      g.gain.linearRampToValueAtTime(vol, ac.currentTime + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+      o.connect(g).connect(this._fxOut());
+      o.start(); o.stop(ac.currentTime + dur + 0.02);
+    }catch(e){}
+  },
+  sweep(f1, f2, type, vol, dur){
+    if(!this.enabled) return;
+    type = type || 'sine'; vol = vol || 0.2; dur = dur || 0.3;
+    try{
+      const ac = this.ensure(); if(!ac) return;
+      const o = ac.createOscillator(); const g = ac.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f1, ac.currentTime);
+      o.frequency.exponentialRampToValueAtTime(Math.max(f2,20), ac.currentTime + dur);
+      g.gain.setValueAtTime(vol, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+      o.connect(g).connect(this._fxOut());
+      o.start(); o.stop(ac.currentTime + dur + 0.02);
+    }catch(e){}
+  },
+  /* ---------- 落子音效：外部音频 audio/stone_place.mp3 ----------
+     已移除原合成音（噪声脉冲 + 三角波），全部改由该 mp3 发声。 */
+  _placeSrc: 'audio/stone_place.mp3',
+  _placePool: [],
+  _placeIdx: 0,
+  _placeVol: 0.9,
+  _placeFailed: false,
+  _initPlace(){
+    if(this._placePool.length || this._placeFailed) return;
+    if(typeof Audio === 'undefined'){ this._placeFailed = true; return; }
+    try{
+      for(let i=0;i<6;i++){            // 6 个实例轮转，连打时不会互相打断
+        const a = this._mkAudio(this._placeSrc);
+        a.volume = this._v(this._placeVol);
+        a.addEventListener('error', ()=>{ this._placeFailed = true; }, {once:true});
+        this._placePool.push(a);
+      }
+      // iOS/安卓：必须在用户手势的同步栈里播放过一次，之后才允许程序化连播
+      const a0 = this._placePool[0];
+      const v0 = a0.volume; a0.volume = 0;
+      const pr = a0.play();
+      if(pr && pr.then){
+        pr.then(()=>{
+          // 仅当仍是静音态才收声：已被真实落子接管（volume 已还原）时不可打断
+          if(a0.volume === 0){ a0.pause(); try{ a0.currentTime = 0; }catch(e){} a0.volume = v0; }
+        }).catch(()=>{ if(a0.volume === 0) a0.volume = v0; });
+      } else { a0.volume = v0; }
+    }catch(e){ this._placeFailed = true; }
+  },
+  place(){
+    if(!this.enabled) return;          // 音效总开关
+    if(this._placeFailed) return;      // 文件缺失时静默，不再回退到旧合成音
+    try{
+      if(!this._placePool.length) this._initPlace();
+      const n = this._placePool.length;
+      if(!n) return;
+      let a = null;
+      for(let i=0;i<n;i++){
+        const c = this._placePool[(this._placeIdx + i) % n];
+        if(c.paused || c.ended){ a = c; this._placeIdx = (this._placeIdx + i + 1) % n; break; }
+      }
+      if(!a){ a = this._placePool[this._placeIdx]; this._placeIdx = (this._placeIdx + 1) % n; }
+      try{ a.currentTime = 0; }catch(e){}
+      a.volume = this._v(this._placeVol);
+      const pr = a.play();
+      if(pr && pr.catch) pr.catch(()=>{});
+    }catch(e){}
+  },
+  charge3(){ this.tone(660, 0.1, 'sine', 0.2); setTimeout(()=>this.tone(880,0.1,'sine',0.2), 70); },
+  chargeFull(){ this.tone(523,0.12,'triangle',0.24); setTimeout(()=>this.tone(659,0.12,'triangle',0.24),90); setTimeout(()=>this.tone(880,0.18,'triangle',0.24),180); },
+  /* 金锁上锁音效：金属碰击 + 余音 */
+  chain(){
+    if(!this.enabled) return;
+    try{
+      const ac = this.ensure(); if(!ac) return;
+      const t = ac.currentTime;
+      // 金属碰击：高频方波短脉冲 + bandpass
+      const o = ac.createOscillator(); o.type = 'square';
+      o.frequency.setValueAtTime(1320, t); o.frequency.exponentialRampToValueAtTime(880, t+0.04);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0, t);
+      g.gain.linearRampToValueAtTime(0.28, t+0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.12);
+      const bp = ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2400; bp.Q.value=8;
+      o.connect(bp).connect(g).connect(this._fxOut());
+      o.start(t); o.stop(t+0.13);
+      // 余音铃：三角波，谐波衰减
+      const o2 = ac.createOscillator(); o2.type='triangle';
+      o2.frequency.setValueAtTime(1760, t); o2.frequency.exponentialRampToValueAtTime(1320, t+0.25);
+      const g2 = ac.createGain();
+      g2.gain.setValueAtTime(0.0, t);
+      g2.gain.linearRampToValueAtTime(0.16, t+0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001, t+0.30);
+      o2.connect(g2).connect(this._fxOut());
+      o2.start(t); o2.stop(t+0.32);
+    }catch(e){}
+  },
+  /* 五子金光齐闪时的清脆同频合鸣（三音上行琶音 + 一次金铃） */
+  chainGold(){
+    if(!this.enabled) return;
+    [880, 1174.66, 1567.98].forEach((f, i)=>{
+      setTimeout(()=>{ try{ this.tone(f, 0.3, 'triangle', 0.18); }catch(e){} }, i * 90);
+    });
+    setTimeout(()=>{ try{ this.tone(2093, 0.5, 'sine', 0.12); }catch(e){} }, 280);
+  },
+  /* 白噪音发生器（音效内用） */
+  noise(dur, vol, freq, type){
+    if(!this.enabled) return;
+    try{
+      const ac = this.ensure(); if(!ac) return;
+      const t = ac.currentTime;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate*dur), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i=0;i<d.length;i++){ d[i] = (Math.random()*2-1) * (1 - i/d.length); }
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+      let node = src;
+      if(freq){ const f = ac.createBiquadFilter(); f.type=type||'bandpass'; f.frequency.value=freq; f.Q.value=1; node.connect(f); node=f; }
+      node.connect(g).connect(this._fxOut()); src.start(t); src.stop(t+dur+0.02);
+    }catch(e){}
+  },
+
+  /* ---- 十门绝学音效（外部 mp3，按各自的动画时长收尾） ----
+     动画时长参照：招名大字 1950ms、飘散粒子 1600ms、落点爆裂 1000ms、
+     棋盘震晃 650ms、太极图 2300ms、飞鸟 1500ms、虎爪 900ms、面板结冰 1600ms。
+     音频长于动画者，于 dur 处淡出收声；短于动画者自然播完。 */
+  SFX: {
+    feisha:    { src:'audio/sfx_feisha.mp3',    dur:1950, vol:0.9  },  // 沙粒 1600 + 大字 1950（原音 2.06s → 裁至 1.95s）
+    jingru:    { src:'audio/sfx_jingru.mp3',    dur:1900, vol:0.85 },  // 冰霜 1600 + 面板结冰 1600（原音 1.88s，播满）
+    liba:      { src:'audio/sfx_liba.mp3',      dur:2000, vol:0.95 },  // 震屏 650 + 飞石 1600 + 大字 1950
+    dongshan:  { src:'audio/sfx_dongshan.mp3',  dur:1950, vol:0.85 },  // 新芽 1600 + 大字 1950
+    yixing:    { src:'audio/sfx_yixing.mp3',    dur:1950, vol:0.85 },  // 北斗 1600 + 落点 1000
+    tongqiang: { src:'audio/sfx_tongqiang.mp3', dur:1950, vol:0.9  },  // 钟形 1600 + 大字 1950
+    xinghuo:   { src:'audio/sfx_xinghuo.mp3',   dur:1950, vol:0.9  },  // 火焰 1600 + 两处落点 1000
+    zemo:      { src:'audio/sfx_zemo.mp3',      dur:1800, vol:0.85 },  // 飞鸟 1500 + 落点 1000（原音 1.75s，播满）
+    diaohu:    { src:'audio/sfx_diaohu.mp3',    dur:2000, vol:0.9  },  // 虎爪 900 + 大字 1950（原音 2.38s → 裁至 2.0s）
+    liangji:   { src:'audio/sfx_liangji.mp3',   dur:2300, vol:0.9  }   // 太极图 2300（原音 2.06s，播满）
+  },
+  _sfxPool: {},
+  _sfxTimers: {},
+  _sfxInit: false,
+  _initSfx(){
+    if(this._sfxInit || typeof Audio === 'undefined') return;
+    this._sfxInit = true;
+    const self = this;
+    Object.keys(this.SFX).forEach((k)=>{
+      const cfg = this.SFX[k];
+      const pool = [];
+      for(let i=0;i<2;i++){
+        const a = self._mkAudio(cfg.src);
+        a.volume = self._v(cfg.vol);
+        pool.push(a);
+      }
+      self._sfxPool[k] = pool;
+      // iOS/安卓：须在用户手势内静音激活一次，之后才允许程序化播放（AI 出手时无手势）
+      const a0 = pool[0], v0 = a0.volume; a0.volume = 0;
+      try{
+        const p = a0.play();
+        if(p && p.then){
+          p.then(()=>{
+            // 仅当仍是静音态才收声：若期间已被真正播放接管（volume 已还原），绝不可打断
+            if(a0.volume === 0){ try{ a0.pause(); a0.currentTime = 0; }catch(e){} a0.volume = v0; }
+          }).catch(()=>{ if(a0.volume === 0) a0.volume = v0; });
+        } else a0.volume = v0;
+      }catch(e){ a0.volume = v0; }
+    });
+  },
+  _sfx(key){
+    if(!this.enabled) return;
+    try{
+      if(typeof Audio === 'undefined') return;
+      const cfg = this.SFX[key]; if(!cfg) return;
+      // 记下技能音效/特效的结束时刻，连五的金锁动画要等它演完才登场
+      try{ skillFxUntil = Math.max(skillFxUntil || 0, Date.now() + Math.max(400, cfg.dur) + 220); }catch(e){}
+      this._initSfx();
+      const pool = this._sfxPool[key];
+      if(!pool || !pool.length) return;
+      clearTimeout(this._sfxTimers[key]);
+      let a = null;
+      for(let i=0;i<pool.length;i++){ if(pool[i].paused || pool[i].ended){ a = pool[i]; break; } }
+      if(!a) a = pool[0];
+      // 同技连放时先掐掉另一个实例，避免叠音
+      pool.forEach((x)=>{ if(x !== a){ try{ x.pause(); x.currentTime = 0; x.volume = this._v(cfg.vol); }catch(e){} } });
+      try{ a.currentTime = 0; a.volume = this._v(cfg.vol); }catch(e){}
+      const p = a.play(); if(p && p.catch) p.catch(()=>{});
+      // 到 dur 前的 fade 毫秒线性淡出，随后停声并复位
+      const fade = 260, stopAt = Math.max(400, cfg.dur);
+      const self = this;
+      this._sfxTimers[key] = setTimeout(()=>{
+        const step = 60, n = Math.max(1, Math.round(fade/step));
+        let i = 0;
+        const dec = setInterval(()=>{
+          i++;
+          try{ a.volume = Math.max(0, this._v(cfg.vol) * (1 - i/n)); }catch(e){}
+          if(i >= n){
+            clearInterval(dec);
+            try{ a.pause(); a.currentTime = 0; a.volume = this._v(cfg.vol); }catch(e){}
+          }
+        }, step);
+      }, Math.max(0, stopAt - fade));
+    }catch(e){}
+  },
+  feisha(){ this._sfx('feisha'); },
+  jingru(){ this._sfx('jingru'); },
+  liba(){ this._sfx('liba'); },
+  dongshan(){ this._sfx('dongshan'); },
+  yixing(){ this._sfx('yixing'); },
+  tongqiang(){ this._sfx('tongqiang'); },
+  xinghuo(){ this._sfx('xinghuo'); },
+  zemo(){ this._sfx('zemo'); },
+  diaohu(){ this._sfx('diaohu'); },
+  liangji(){ this._sfx('liangji'); },
+  lifeLost(){ this.tone(220,0.45,'sawtooth',0.3); setTimeout(()=>this.tone(150,0.4,'sawtooth',0.28),120); },
+  matchOver(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,0.22,'triangle',0.25), i*130)); },
+  /* 金锁落定：非谐金属分音 + 铁链摩擦 + 锁扣闷响 */
+  chain(){
+    if(!this.enabled) return;
+    try{
+      const ac = this.ensure(); if(!ac) return;
+      const t = ac.currentTime;
+      const parts = [1860, 2690, 3520, 4810];
+      for(let i=0;i<parts.length;i++){
+        const o = ac.createOscillator(); o.type = 'sine';
+        o.frequency.value = parts[i] * (1 + (Math.random()*0.024 - 0.012));
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.13 / (i + 1), t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0008, t + 0.45);
+        o.connect(g).connect(this._fxOut()); o.start(t); o.stop(t + 0.48);
+      }
+      const dur = 0.2;
+      const buf = ac.createBuffer(1, Math.floor(ac.sampleRate*dur), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 3);
+      const s = ac.createBufferSource(); s.buffer = buf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3300; bp.Q.value = 1.1;
+      const ng = ac.createGain(); ng.gain.value = 0.16;
+      s.connect(bp).connect(ng).connect(this._fxOut()); s.start(t); s.stop(t + dur);
+      const o2 = ac.createOscillator(); o2.type = 'square';
+      o2.frequency.setValueAtTime(240, t); o2.frequency.exponentialRampToValueAtTime(92, t + 0.09);
+      const g2 = ac.createGain();
+      g2.gain.setValueAtTime(0.09, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+      o2.connect(g2).connect(this._fxOut()); o2.start(t); o2.stop(t + 0.15);
+    }catch(e){}
+  },
+
+  /* ---- BGM ----
+     开场曲 audio/bgm_intro.mp3（十面埋伏前 42 秒）：仅每局开始播放一次；
+     播毕即转入循环曲 audio/langtaosha.mp3、audio/luozitingfeng.mp3 交替循环，
+     本局内不再重播开场曲（新的一局开始时会再播）。 */
+  _bgmIntroSrc: 'audio/bgm_intro.mp3',
+  _bgmLoopSrcs: ['audio/langtaosha.mp3', 'audio/luozitingfeng.mp3'],
+  _bgmIntro: null,
+  _bgmIntroPlaying: false,
+  _bgmIntroTried: 0,
+  _mkBgm(src){
+    // 走 _mkAudio：先挂原始地址，Blob 取回后自动换成本地地址（绕开 iOS 的 Range 要求）
+    const a = this._mkAudio(src, ()=>{ this._bgmTick(); });
+    a.volume = this._bgmVol;
+    return a;
+  },
+  initBGM(){
+    if(this._bgmInit || typeof Audio === 'undefined') return;
+    this._bgmInit = true;
+    const self = this;
+    // 循环曲
+    this._bgmLoopSrcs.forEach((f)=>{
+      const a = this._mkBgm(f);
+      // 开场曲进行中，循环曲一律不得自行起播（pause/canplay 等事件是异步的，
+      // 若不拦住就会在开场曲的 playing 事件到达前抢播，把开场曲盖住）
+      const tick = ()=>{ if(!self._bgmIntroPlaying) self._bgmTick(); };
+      ['loadedmetadata','loadeddata','canplay','canplaythrough','suspend','progress'].forEach((ev)=>{
+        a.addEventListener(ev, tick);
+      });
+      a.addEventListener('playing', ()=>{ if(!self._bgmIntroPlaying) self._bgmPlaying = true; });
+      a.addEventListener('pause',   ()=>{ if(self.enabled && self._bgmOn && !self._bgmIntroPlaying && !a.ended) self._bgmTick(); });
+      a.addEventListener('ended',   ()=>{ self._bgmPlaying = false; self._nextLoop(); });
+      a.addEventListener('error',   ()=>{ self._bgmPlaying = false; self._bgmErr(); });
+      this._bgmList.push(a);
+    });
+    // 开场曲
+    const intro = this._mkBgm(this._bgmIntroSrc);
+    ['loadedmetadata','loadeddata','canplay','canplaythrough'].forEach((ev)=>{
+      intro.addEventListener(ev, ()=>{ self._bgmTick(); });
+    });
+    intro.addEventListener('playing', ()=>{ self._bgmPlaying = true; self._bgmIntroPlaying = true; });
+    intro.addEventListener('pause',   ()=>{ if(self.enabled && self._bgmOn && self._bgmIntroPlaying && !intro.ended) self._bgmTick(); });
+    intro.addEventListener('ended',   ()=>{ self._bgmIntroPlaying = false; self._bgmPlaying = false; self._nextLoop(); });
+    intro.addEventListener('error',   ()=>{ self._bgmIntroPlaying = false; self._bgmPlaying = false; self._bgmErr(); self._nextLoop(); });
+    this._bgmIntro = intro;
+    this._bgmTick();
+    // 移动端首播常被系统拦下：4 秒后若仍无声再试一次
+    setTimeout(()=>{ if(self.enabled && self._bgmOn && !self._bgmPlaying && !self._bgmIntroPlaying) self._bgmTick(); }, 4000);
+  },
+  _bgmErrCount: 0,
+  _bgmErr(){
+    this._bgmErrCount++;
+    if(this._bgmErrCount >= 3) this._audioWarn();
+  },
+  /* 每局开始：先静默循环曲，再从头播开场曲；开场曲完整播完才接循环曲 */
+  startMatchBGM(){
+    if(!this.enabled || !this._bgmOn) return;
+    this.initBGM();
+    const a = this._bgmIntro;
+    if(!a || a.error){ this._nextLoop(); return; }
+    // 同步置位：必须在停掉循环曲之前立起旗标，否则循环曲的异步 pause 事件会自己续播
+    this._bgmIntroPlaying = true;
+    this._bgmIntroTried = 0;
+    this._stopLoop();
+    this._bgmIdx = 0;                    // 开场曲之后一律从《浪淘沙》起
+    this._bgmCur = a;
+    try{ a.volume = this._bgmVol; }catch(e){}
+    try{ if(a.readyState >= 1) a.currentTime = 0; }catch(e){}
+    if(a.readyState === 0){ try{ a.load(); }catch(e){} }
+    let p = null, threw = false;
+    try{ p = a.play(); }catch(e){ threw = true; }
+    if(threw){ this._bgmIntroPlaying = false; this._nextLoop(); return; }
+    if(p && p.then){
+      p.then(()=>{ this._bgmPlaying = true; this._bgmIntroPlaying = true; })
+       .catch(()=>{ this._bgmIntroPlaying = false; this._nextLoop(); });
+    } else { this._bgmPlaying = true; }
+    // 看门狗：1.5 秒后若仍未真正出声则重播（最多重试两次），两次都失败才退回循环曲
+    const self = this;
+    const wd = ()=>{
+      if(!self.enabled || !self._bgmOn || !self._bgmIntroPlaying) return;
+      const alive = a && !a.paused && !a.ended && a.currentTime > 0;
+      if(alive) return;
+      self._bgmIntroTried = (self._bgmIntroTried || 0) + 1;
+      if(self._bgmIntroTried > 2){ self._bgmIntroPlaying = false; self._nextLoop(); return; }
+      try{ a.currentTime = 0; }catch(e){}
+      const p2 = a.play(); if(p2 && p2.catch) p2.catch(()=>{});
+      clearTimeout(self._bgmWd);
+      self._bgmWd = setTimeout(wd, 1500);
+    };
+    clearTimeout(this._bgmWd);
+    this._bgmWd = setTimeout(wd, 1500);
+  },
+  _stopLoop(){
+    this._bgmList.forEach((a)=>{ try{ a.pause(); }catch(e){} });
+  },
+  /* 循环曲：两首轮流，播完一首接下一首 */
+  _nextLoop(){
+    if(!this.enabled || !this._bgmOn) return false;
+    if(this._bgmIntroPlaying) return false;          // 开场曲进行中不抢
+    const n = this._bgmList.length;
+    if(!n) return false;
+    if(this._bgmCur && this._bgmList.indexOf(this._bgmCur) >= 0 && !this._bgmCur.paused && !this._bgmCur.ended){
+      this._bgmPlaying = true; return true;
+    }
+    for(let k = 0; k < n; k++){
+      const i = (this._bgmIdx + k) % n;
+      const a = this._bgmList[i];
+      if(!a || a.error) continue;
+      this._bgmIdx = (i + 1) % n;
+      this._bgmCur = a;
+      try{ a.volume = this._bgmVol; }catch(e){}
+      if(a.readyState === 0){ try{ a.load(); }catch(e){} }
+      let p = null, threw = false;
+      try{ p = a.play(); }catch(e){ threw = true; }
+      if(!threw && p && p.then) p.then(()=>{ this._bgmPlaying = true; }).catch(()=>{ this._bgmPlaying = false; });
+      else if(!threw){ this._bgmPlaying = true; }
+      clearTimeout(this._bgmWd);
+      this._bgmWd = setTimeout(()=>{
+        if(this.enabled && this._bgmOn && !this._bgmIntroPlaying && !(this._bgmCur && !this._bgmCur.paused && !this._bgmCur.ended)){
+          this._bgmPlaying = false; this._nextLoop();
+        }
+      }, 2000);
+      if(!threw) return true;
+    }
+    return false;
+  },
+  /* 续播入口：开场曲进行中续开场曲，否则续循环曲（可由任意用户手势反复调用） */
+  _bgmTick(){
+    if(!this.enabled || !this._bgmOn) return false;
+    if(this._bgmIntroPlaying){
+      const a = this._bgmIntro;
+      if(a && !a.error){
+        if(!a.paused && !a.ended){ this._bgmPlaying = true; return true; }
+        let p = null, threw = false;
+        try{ p = a.play(); }catch(e){ threw = true; }
+        if(!threw){
+          if(p && p.then) p.then(()=>{ this._bgmPlaying = true; }).catch(()=>{});
+          else this._bgmPlaying = true;
+          return true;
+        }
+      }
+      this._bgmIntroPlaying = false;
+    }
+    return this._nextLoop();
+  },
+  _stopBGM(){
+    if(this._bgmIntro) try{ this._bgmIntro.pause(); }catch(e){}
+    this._bgmList.forEach((a)=>{ try{ a.pause(); }catch(e){} });
+    this._bgmIntroPlaying = false;
+    this._bgmPlaying = false;
+    clearTimeout(this._bgmWd);
+  },
+  setEnabled(on){
+    this.enabled = on;
+    if(!on){
+      this._stopBGM();
+    } else {
+      this.unlock();
+      this.initBGM();
+      this._bgmTick();
+    }
+  },
+  // 音乐独立开关
+  setBGM(on){
+    this._bgmOn = on;
+    if(!on){
+      this._stopBGM();
+    } else {
+      this.unlock();
+      this.initBGM();
+      this._bgmTick();
+    }
+  },
+  /* 读回滑轨音量偏好并应用到元素（须在 initBGM / _initSfx 前调用） */
+  _loadVol(){
+    try{
+      const b = parseFloat(localStorage.getItem('gomoku_bgmVol'));
+      if(isFinite(b)) this._bgmVol = Math.max(0, Math.min(1, b));
+      const s = parseFloat(localStorage.getItem('gomoku_sfxVol'));
+      if(isFinite(s)) this._sfxVol = Math.max(0, Math.min(1, s));
+    }catch(e){}
+  },
+  /* 背景音乐音量滑轨：0~1；实时套到当前开场曲 / 循环曲，并记忆 */
+  setBGMVol(v){
+    v = Math.max(0, Math.min(1, +v || 0));
+    this._bgmVol = v;
+    try{ localStorage.setItem('gomoku_bgmVol', String(v)); }catch(e){}
+    const setA = (a)=>{ try{ if(a && !a.error){ a.volume = v; } }catch(e){} };
+    setA(this._bgmIntro);
+    (this._bgmList || []).forEach(setA);
+    if(this._bgmCur) setA(this._bgmCur);
+  },
+  /* 音效音量滑轨：0~1；实时改动合成音效主总线 + 正在播放的 mp3 音效，并记忆 */
+  setSFXVol(v){
+    v = Math.max(0, Math.min(1, +v || 0));
+    this._sfxVol = v;
+    try{ localStorage.setItem('gomoku_sfxVol', String(v)); }catch(e){}
+    try{ if(this._sfxGain){ this._sfxGain.gain.setValueAtTime(v, (this.ctx && this.ctx.currentTime) || 0); } }catch(e){}
+    // 正在播放的 mp3 音效即时更新（下次播放仍会按 _v 重新缩放）
+    try{
+      this._placePool.forEach((a)=>{ try{ a.volume = this._v(this._placeVol); }catch(e){} });
+      Object.keys(this._sfxPool || {}).forEach((k)=>{
+        (this._sfxPool[k] || []).forEach((a)=>{ try{ a.volume = this._v(this.SFX[k].vol); }catch(e){} });
+      });
+    }catch(e){}
+  }
+};
+
+/* ===================== 全局状态 ===================== */
+let canvas, ctx, dpr;
+let board, current, players, history, banned, mode, pendingSkill, skillStep, selectedForSkill;
+let lockedSet, lockedChains, cellToChainIdx; // cellToChainIdx: Map "x,y" → chain 索引数组（通常仅一项）
+let gameMode = 'pvp';
+let lastWinner = null;
+let aiThinking = false;
+let chainAnim = null;      // 金锁动画：{cells, t0, n, chainIdx, onDone}
+let pendingChainIdx = -1;  // 新连五尚未开始"逐子锁链"动画期间，其链索引（渲染时先不显示整链）
+let skillFxUntil = 0;      // 技能特效结束时刻（连五动画要等它演完再上）
+
+function other(p){ return p === P1 ? P2 : P1; }
+function inB(x, y){ return x >= 0 && x < N && y >= 0 && y < N; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function canControl(pid){ return gameMode === 'pvp' || pid === P1; }
+function drawCards(){ return shuffle(CHARACTERS.slice()).slice(0,3); }
+
+/* ===================== 连线 / 锁链 ===================== */
+// 锁住的子仍按原色计入连线；但判断「新五连」时，一段五连中的任意两枚锁子不得 8-相邻
+//（由于五连本身是一直线，归结为「相邻位置不能同为锁子」）。
+// 沿 (dx,dy) 双向、以 (x,y) 为中心，收集完整连续同色串（锁子不打断，颜色一致即计入）
+function dirRun(x, y, dx, dy, color){
+  const cells=[{x:x, y:y}];
+  let cx=x+dx, cy=y+dy;
+  while(inB(cx,cy) && board[cy][cx]===color){ cells.push({x:cx, y:cy}); cx+=dx; cy+=dy; }
+  cx=x-dx; cy=y-dy;
+  while(inB(cx,cy) && board[cy][cx]===color){ cells.unshift({x:cx, y:cy}); cx-=dx; cy-=dy; }
+  return cells;
+}
+// 沿该方向的同色连续串总长（含被锁之子；是否成五由 getFiveCells 同链规则把关）
+function getLineLengths(x, y, color){
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  const res = [];
+  for(let d=0; d<4; d++){
+    res.push(dirRun(x, y, dirs[d][0], dirs[d][1], color).length);
+  }
+  return res;
+}
+function getFiveCells(x, y, color){
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for(let d=0; d<4; d++){
+    const cells = dirRun(x, y, dirs[d][0], dirs[d][1], color);
+    if(cells.length < 5) continue;
+    // 在所有 5 窗口中，找一段「新五连」：
+    //   - 不能包含同一串（同一 chain）中的两枚锁子
+    for(let s=0; s+4 < cells.length; s++){
+      const win = cells.slice(s, s+5);
+      const seenChain = new Set();
+      let ok = true;
+      for(let k=0; k<win.length; k++){
+        const ciArr = cellToChainIdx.get(win[k].x+','+win[k].y);
+        if(!ciArr) continue;
+        for(let q=0; q<ciArr.length; q++){
+          if(seenChain.has(ciArr[q])){ ok = false; break; }
+          seenChain.add(ciArr[q]);
+        }
+        if(!ok) break;
+      }
+      if(ok) return win;
+    }
+  }
+  return null;
+}
+function lockFive(cells){
+  const chain = cells.map(c=>({x:c.x,y:c.y}));
+  for(let i=0;i<chain.length;i++) lockedSet.add(chain[i].x+','+chain[i].y);
+  lockedChains.push(chain);
+  _rebuildChainIdx();
+}
+function _rebuildChainIdx(){
+  cellToChainIdx = new Map();
+  for(let ci=0; ci<lockedChains.length; ci++){
+    const chain = lockedChains[ci];
+    for(let i=0;i<chain.length;i++){
+      const k = chain[i].x+','+chain[i].y;
+      let arr = cellToChainIdx.get(k);
+      if(!arr){ arr = []; cellToChainIdx.set(k, arr); }
+      arr.push(ci);
+    }
+  }
+}
+function recomputeLocks(){
+  lockedSet = new Set(); lockedChains = []; pendingChainIdx = -1;
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const c = board[y][x]; if(!c) continue;
+    for(let d=0;d<4;d++){
+      const dx=dirs[d][0], dy=dirs[d][1];
+      if(inB(x-dx,y-dy) && board[y-dy][x-dx]===c) continue;
+      const cells=[]; let cx=x, cy=y;
+      while(inB(cx,cy) && board[cy][cx]===c){ cells.push({x:cx,y:cy}); cx+=dx; cy+=dy; }
+      if(cells.length>=5){
+        for(let k=0;k<cells.length;k++) lockedSet.add(cells[k].x+','+cells[k].y);
+        lockedChains.push(cells);
+      }
+    }
+  }
+  _rebuildChainIdx();
+}
+
+/* ===================== 弹窗 ===================== */
+function showOverlay(html){
+  const m = document.getElementById('modal');
+  m.innerHTML = html;
+  m.classList.remove('wide');
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay(){ document.getElementById('overlay').classList.remove('show'); }
+
+function showModeSelector(){
+  mode = 'select';
+  showOverlay(
+    '<h2>择定对局</h2>' +
+    '<p>先选对战之式</p>' +
+    '<div class="mode-cards">' +
+      '<div class="mode-card" data-mode="pvp"><div class="icon">👥</div><div class="mtitle">江湖双侠</div><div class="mdesc">两位玩家同屏轮流出招</div></div>' +
+      '<div class="mode-card" data-mode="pve"><div class="icon">🤖</div><div class="mtitle">人机论剑</div><div class="mdesc">与电脑 AI 对弈，AI 亦会使技</div></div>' +
+    '</div>'
+  );
+  const cards = document.querySelectorAll('.mode-card');
+  for(let i=0;i<cards.length;i++){
+    cards[i].onclick = function(){
+      gameMode = this.getAttribute('data-mode');
+      hideOverlay();
+      showCardSelection();
+    };
+  }
+}
+
+function showCardSelection(){
+  const p1Cards = drawCards();
+  const p2Cards = drawCards();
+  const aiChar = (gameMode === 'pve') ? p2Cards[0] : null;
+  const locked = (gameMode === 'pve');
+
+  let p1Html = '';
+  for(let i=0;i<p1Cards.length;i++){
+    const c = p1Cards[i];
+    p1Html += '<div class="card" data-p1="'+c.id+'" style="--c:'+c.color+'"><div class="cn">'+c.name+'</div><div class="cd">'+c.desc+'</div></div>';
+  }
+  let p2Html = '';
+  if(locked){
+    p2Html += '<div class="card locked" style="--c:'+aiChar.color+'"><div class="cn">'+aiChar.name+'</div><div class="cd">'+aiChar.desc+'</div></div>';
+    p2Html += '<div class="card ghost" style="--c:#d9d1bf"><div class="cn">未示</div><div class="cd">（电脑已自择）</div></div>';
+    p2Html += '<div class="card ghost" style="--c:#d9d1bf"><div class="cn">未示</div><div class="cd">（电脑已自择）</div></div>';
+  } else {
+    for(let j=0;j<p2Cards.length;j++){
+      const c2 = p2Cards[j];
+      p2Html += '<div class="card" data-p2="'+c2.id+'" style="--c:'+c2.color+'"><div class="cn">'+c2.name+'</div><div class="cd">'+c2.desc+'</div></div>';
+    }
+  }
+
+  showOverlay(
+    '<h2>择定绝学</h2>' +
+    '<p>' + (locked ? '自三门绝学中择一（电脑已自择）' : '双方各择一门绝学') + '</p>' +
+    '<div class="sides">' +
+      '<div class="side"><h3><span class="dot b"></span>技能五 · 择技</h3><div class="cards">' + p1Html + '</div></div>' +
+      '<div class="side"><h3><span class="dot w"></span>子棋 · ' + (locked ? '已择（电脑）' : '择技') + '</h3><div class="cards">' + p2Html + '</div></div>' +
+    '</div>' +
+    '<div class="actions"><button id="btnStart" class="primary">开局</button></div>'
+  );
+  try{ document.getElementById('modal').classList.add('wide'); }catch(e){}
+
+  let pick = null;
+  const p1Els = document.querySelectorAll('[data-p1]');
+  for(let k=0;k<p1Els.length;k++){
+    p1Els[k].onclick = function(){
+      const all = document.querySelectorAll('[data-p1]');
+      for(let m=0;m<all.length;m++) all[m].classList.remove('sel');
+      this.classList.add('sel');
+      pick = CHARACTERS.find(c=>c.id===this.getAttribute('data-p1'));
+    };
+  }
+  if(!locked){
+    const p2Els = document.querySelectorAll('[data-p2]');
+    for(let n=0;n<p2Els.length;n++){
+      p2Els[n].onclick = function(){
+        const all = document.querySelectorAll('[data-p2]');
+        for(let m=0;m<all.length;m++) all[m].classList.remove('sel');
+        this.classList.add('sel');
+        p2Cards.length = 0;
+        p2Cards.push(CHARACTERS.find(c=>c.id===this.getAttribute('data-p2')));
+      };
+    }
+  }
+  document.getElementById('btnStart').onclick = function(){
+    if(!pick){ alert('请先择一令'); return; }
+    const p2Char = locked ? aiChar : p2Cards[0];
+    Sound.unlock();          // 在本手势内完成音频授权，保证开场曲能立即出声
+    hideOverlay();
+    startMatch(pick, p2Char);
+  };
+}
+
+function startMatch(p1Char, p2Char){
+  // 随机执黑执白
+  const p1Dark = Math.random() < 0.5;
+  players = {
+    1: { name: '技能五', char:p1Char,charge:0, maxCharge:100, lives:3, skipTurn:false, skillReady:false, skillBlockedTurns:0, stoneColor: p1Dark ? 'dark' : 'light' },
+    2: { name: '子棋', char:p2Char, charge:0, maxCharge:100, lives:3, skipTurn:false, skillReady:false, skillBlockedTurns:0, stoneColor: p1Dark ? 'light' : 'dark' }
+  };
+  board = new Array(N);
+  for(let i=0;i<N;i++) board[i] = new Array(N).fill(EMPTY);
+  history = [];
+  banned = null;
+  lockedSet = new Set();
+  lockedChains = [];
+  pendingChainIdx = -1;
+  chainAnim = null; winFlash = null;
+  cellToChainIdx = new Map();
+  pendingSkill = null; skillStep = 1; selectedForSkill = null;
+  aiThinking = false;
+  // 黑子先手
+  current = (players[1].stoneColor === 'dark') ? P1 : P2;
+  mode = 'play';
+  const first = players[current];
+  message('<span class="who">' + first.name + '</span> 执黑先手，请落子');
+  Sound.startMatchBGM();   // 开场曲《十面埋伏》前 42 秒，播毕自动转入循环曲
+  render();
+  triggerAI();
+}
+
+/* ===================== 落子 / 回合 ===================== */
+function placeStone(x, y){
+  if(board[y][x] !== EMPTY){ message('此处已有棋子'); return; }
+  if(banned && banned.x === x && banned.y === y){
+    message('此点被「铜墙铁壁」封锁，本局双方皆不得落子'); return;
+  }
+  const color = current;
+  const chargeBefore = players[color].charge;
+  board[y][x] = color;
+  history.push({ x:x, y:y, color:color, chargeBefore:chargeBefore });
+
+  // 先判断是否连成五子（得胜）：若成五，只加少量底数、不加连线的巨额奖励，
+  // 因为成五已夺一命，不应再大量蓄气。
+  const five = getFiveCells(x, y, color);
+  const lens = getLineLengths(x, y, color);
+  let gained = 6, maxLine = 0;
+  if(!five){
+    for(let li=0; li<lens.length; li++){
+      const L = lens[li];
+      if(L >= 3) gained += (L - 2) * 15;
+      if(L > maxLine) maxLine = L;
+    }
+  }
+  for(let li=0; li<lens.length; li++) if(lens[li] > maxLine) maxLine = lens[li];
+  const remaining = players[color].maxCharge - players[color].charge;
+  if(gained > remaining) gained = remaining;
+  players[color].charge += gained;
+  const justFull = !players[color].skillReady && players[color].charge >= players[color].maxCharge;
+  if(players[color].charge >= players[color].maxCharge){ players[color].charge = players[color].maxCharge; players[color].skillReady = true; }
+
+  Sound.place();
+  if(five){ /* endRound() 会播失命音，此处不加连线奖励音 */ }
+  else if(maxLine >= 4) Sound.chargeFull();
+  else if(maxLine === 3) Sound.charge3();
+  if(justFull){
+    Sound.chargeFull();
+    if(canControl(color)){
+      message('<span class="who">' + players[color].name + '</span> 绝学「' + players[color].char.name + '」已然蓄满 —— 可<b>喊出招名</b>施展');
+    }
+  }
+
+  if(five){
+    announceFive(five, color, false);   // 三段式动画：锁链→金光齐闪→扣命横幅
+    return;
+  }
+  advanceTurn();
+  render();
+  triggerAI();
+}
+
+function advanceTurn(){
+  const ending = current;
+  if(players[ending].skillBlockedTurns > 0) players[ending].skillBlockedTurns--; // 结束被封者的一回合，计一次
+  const next = other(current);
+  if(players[next].skipTurn){
+    players[next].skipTurn = false;
+    message(players[next].name + ' 被「静如止水」禁走，回合跳过');
+    // current 不变
+  } else {
+    current = next;
+  }
+  // 铜墙铁壁的封禁自设置后整局生效，不再随施术者回合结束而解除
+}
+
+function endRound(winner){
+  const loser = other(winner);
+  if(players[loser].lives <= 0){ matchOver(winner); return; }
+  players[loser].lives--;
+  Sound.lifeLost();
+  lastWinner = winner;
+  if(players[loser].lives <= 0){ matchOver(winner); return; }
+  resumeAfterLifeLost(loser);
+}
+
+/* ===================== 连五夺命：三段式串行动画 =====================
+   顺序：① 若为技能所成，先等技能音效/特效放完 →
+        ② 五子被金色锁链逐一锁住 → ③ 五子金光齐闪 →
+        ④ 才扣命 + 出自动消失横幅。一个播完才播下一个。 */
+const CHAIN_STEP = 180;     // 每隔多久锁住下一子
+const CHAIN_LEAD = 120;     // 起手延迟
+const CHAIN_TAIL = 150;     // 每颗锁上后的顿停
+let winFlash = null;        // 金光齐闪阶段：{cells, color, t0}
+
+/* 全类型连五统一入口（普通落子 / 各技能皆走这里） */
+function announceFive(cells, color, viaSkill){
+  lockFive(cells);          // 逻辑立即上锁（防技能再改 / 重复判），视觉由动画阶段呈现
+  pendingChainIdx = lockedChains.length - 1;   // 动画尚未开始，先不显示整条链（等逐子锁上再露）
+  mode = 'lock';            // 动画期间屏蔽落子 / 技能
+  render();
+  // 阶段①：技能所成则先等其音效 + 特效放完（skillFxUntil 是技能结束时刻）
+  const fxLeft = Math.max(0, (skillFxUntil || 0) - Date.now());
+  const wait0 = fxLeft + (viaSkill ? 140 : 40);
+  setTimeout(function(){
+    startChainLock(cells, function(){ skillFxUntil = 0; startWinFlash(cells, color); });
+  }, wait0);
+}
+
+/* 该锁链当前应显示到第几颗（供渲染用）：
+   - 正在动画：只画到 chainAnim.n；
+   - 已 lockFive 但动画未开始（pending）：画 0（藏住整链，避免"先出整条锁链"）；
+   - 其余历史已完成锁链：画全长。 */
+function _chainReveal(ci){
+  const chain = lockedChains[ci];
+  if(!chain) return 0;
+  if(chainAnim && chainAnim.chainIdx === ci) return chainAnim.n;
+  if(ci === pendingChainIdx) return 0;
+  return chain.length;
+}
+
+/* 阶段②：五子被金色锁链逐一锁住 */
+function startChainLock(cells, onDone){
+  pendingChainIdx = -1;     // 动画真正开演，交由 chainAnim.n 控制逐子上锁
+  chainAnim = { cells: cells.slice(), t0: Date.now(), n: 0, chainIdx: lockedChains.length - 1, onDone: onDone };
+}
+function updateChainAnim(){
+  if(!chainAnim) return;
+  const el = Date.now() - chainAnim.t0;
+  const total = chainAnim.cells.length;
+  const n = Math.max(0, Math.min(total, Math.floor((el - CHAIN_LEAD) / CHAIN_STEP) + 1));
+  while(chainAnim.n < n){ chainAnim.n++; try{ Sound.chain(); }catch(e){} }
+  if(el >= CHAIN_LEAD + CHAIN_STEP * total + CHAIN_TAIL){
+    const cb = chainAnim.onDone; chainAnim = null;
+    if(cb) cb();
+  }
+}
+
+/* 阶段③：五子金光齐闪（~0.98s，两轮由亮转淡），随后进入阶段④ */
+function startWinFlash(cells, color){
+  winFlash = { cells: cells.slice(), color: color, t0: Date.now() };
+  try{ Sound.chainGold(); }catch(e){}
+}
+function updateWinFlash(){
+  if(!winFlash) return;
+  const el = Date.now() - winFlash.t0;
+  if(el >= 980){
+    const c = winFlash.color; winFlash = null;
+    endRound(c);            // 阶段④：扣命（横幅在 resumeAfterLifeLost 内出现）
+    return;
+  }
+}
+
+
+/* 连成五子后不再弹窗，直接续战 */
+function resumeAfterLifeLost(loser){
+  const winner = lastWinner;
+  mode = 'play';
+  current = other(winner);
+  const lp = Math.max(0, players[loser].lives);
+  roundToast(players[winner].name + ' 连成五子　' + players[loser].name + ' 失一命（余 ' + lp + ' 命）');
+  message('铁链锁之，<span class="who">' + players[loser].name + '</span> 失一命；棋盘不重置，由 <span class="who">' + players[current].name + '</span> 落子');
+  render();
+  setTimeout(function(){ triggerAI(); }, 620);
+}
+
+/* 棋盘上的短提示（无按钮、不阻挡操作） */
+function roundToast(text){
+  const wrap = document.getElementById('boardWrap');
+  if(!wrap) return;
+  const old = document.getElementById('roundToast');
+  if(old && old.parentNode) old.parentNode.removeChild(old);
+  const d = document.createElement('div');
+  d.id = 'roundToast';
+  d.className = 'roundToast';
+  d.innerHTML = text;
+  wrap.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2400);
+}
+
+function matchOver(winner){
+  mode = 'gameover';
+  Sound.matchOver();
+  showOverlay(
+    '<h2>对局终</h2>' +
+    '<div class="winbig" style="color:var(--cinnabar)">🏆 ' + players[winner].name + ' 胜！</div>' +
+    '<p>绝学：' + players[winner].char.name + '（' + players[winner].char.desc + '）</p>' +
+    '<div class="actions"><button class="primary" id="btnAgain">再战</button><button id="btnChange">易式</button></div>'
+  );
+  document.getElementById('btnAgain').onclick = function(){ hideOverlay(); showCardSelection(); };
+  document.getElementById('btnChange').onclick = function(){ hideOverlay(); showModeSelector(); };
+}
+
+/* ===================== 技能 ===================== */
+function activateSkill(fromAI){
+  if(mode !== 'play') return;
+  if(!fromAI && !canControl(current)) return;
+  const p = players[current];
+  if(p.skillBlockedTurns > 0){ message('你被「调虎离山」所封，'+p.skillBlockedTurns+'回合内无法施展绝学'); return; }
+  if(!p.skillReady){ message('绝学尚未蓄满'); return; }
+
+  pendingSkill = p.char.skill;
+  const play = (n)=>{ try{ Sound[n](); }catch(e){} };
+  // 一经施展即耗去本回合蓄满之气（无论是否成五、是否取消，蓄力条均清零）
+  p.charge = 0; p.skillReady = false;
+  render();
+
+  // 无需择目标的绝学：施展即触发音效与特效
+  if(pendingSkill === 'jingru'){
+    FX.clearTimers();
+    players[other(current)].skipTurn = true;
+    play('jingru'); FX.jingru();
+    message('静如止水：对手禁走一回合，请落子');
+    finishSkill(false);
+    return;
+  }
+  if(pendingSkill === 'liba'){
+    FX.clearTimers();
+    play('liba'); FX.liba();
+    resetBoardKeepState();
+    message('力拔山兮：全盘重启，请落子');
+    finishSkill(false);
+    return;
+  }
+  if(pendingSkill === 'dongshan'){ FX.clearTimers(); doUndo(); return; }
+  if(pendingSkill === 'diaohu'){
+    FX.clearTimers();
+    players[other(current)].skillBlockedTurns = 3;
+    play('diaohu'); FX.diaohu();
+    message('调虎离山：对手三个回合内不得施展绝学，请落子');
+    finishSkill(false);
+    return;
+  }
+  if(pendingSkill === 'liangji'){ FX.clearTimers(); doFlip(); return; }
+
+  // 需要择目标的绝学：先进入择目标态（音效与特效在落定目标后触发）
+  mode = 'skill'; skillStep = 1; selectedForSkill = null;
+  message('请依绝学择定目标：' + p.char.desc + '（可点「收招」弃之）');
+  render();
+}
+
+function resetBoardKeepState(){
+  board = new Array(N);
+  for(let i=0;i<N;i++) board[i] = new Array(N).fill(EMPTY);
+  history = [];
+  banned = null;
+  lockedSet = new Set();
+  lockedChains = [];
+  pendingChainIdx = -1;
+  cellToChainIdx = new Map();
+}
+
+function doUndo(){
+  if(history.length < 2){ message('可悔之子不足两步'); return; }
+  try{ Sound.dongshan(); }catch(e){}
+  FX.dongshan();
+  const m1 = history.pop(); board[m1.y][m1.x] = EMPTY;
+  const m2 = history.pop(); board[m2.y][m2.x] = EMPTY;
+  players[m1.color].charge = m1.chargeBefore; players[m1.color].skillReady = m1.chargeBefore >= players[m1.color].maxCharge;
+  players[m2.color].charge = m2.chargeBefore; players[m2.color].skillReady = m2.chargeBefore >= players[m2.color].maxCharge;
+  players[current].charge = 0; players[current].skillReady = false;
+  current = m2.color; // 早一步者续行
+  pendingSkill = null; mode = 'play'; skillStep = 1; selectedForSkill = null;
+  recomputeLocks();
+  message('东山再起：已悔对手一步、己一步，请落子');
+  render();
+  triggerAI();
+}
+
+function doFlip(){
+  // 先改棋盘，再放特效：确保特效异常也不会影响棋局
+  // 被铁链锁定的棋子不可被任何技能改变；两级反转只翻转未锁之子
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    if(board[y][x]===P1 && !lockedSet.has(x+','+y)) board[y][x]=P2;
+    else if(board[y][x]===P2 && !lockedSet.has(x+','+y)) board[y][x]=P1;
+  }
+  try{ Sound.liangji(); }catch(e){}
+  FX.liangji();
+  // 翻转后若出现「新五连」（同链规则把关），则记锁并判负
+  for(let yy=0;yy<N;yy++) for(let xx=0;xx<N;xx++){
+    const c = board[yy][xx];
+    if(c!==EMPTY){
+      const five = getFiveCells(xx,yy,c); // 已存在的旧锁链（同串重复）不会误判
+      if(five){ announceFive(five, c, true); return; }
+    }
+  }
+  message('两级反转：全盘棋子黑白易位，请落子');
+  finishSkill(false);
+}
+
+function finishSkill(advance){
+  players[current].charge = 0; players[current].skillReady = false;
+  pendingSkill = null; mode = 'play'; skillStep = 1; selectedForSkill = null;
+  if(advance) advanceTurn();
+  render();
+  triggerAI();
+}
+
+function cancelSkill(){
+  if(mode === 'skill'){
+    pendingSkill = null; mode = 'play'; skillStep = 1; selectedForSkill = null;
+    message('已收招，请落子');
+    render();
+  }
+}
+
+function checkAndRegisterFive(x, y, color){
+  const five = getFiveCells(x, y, color);
+  if(!five) return false;
+  announceFive(five, color, true);   // 技能促成：先等技能动画演完再走三段式
+  return true;
+}
+
+function handleSkillClick(x, y){
+  const skill = pendingSkill, opp = other(current);
+  const sfx = (n)=>{ try{ Sound[n](); }catch(e){} };
+  if(skill === 'feisha'){
+    if(lockedSet.has(x+','+y)){ message('此子已被铁链锁住，撼动不得'); return; }
+    if(board[y][x] === opp){
+      FX.clearTimers();
+      board[y][x] = EMPTY;
+      sfx('feisha'); FX.feisha(x, y);
+      message('飞沙走石：已灭对手一子，请落子'); finishSkill(false);
+    }
+    else message('请点选对手的一颗棋子');
+  }
+  else if(skill === 'yixing'){
+    if(skillStep === 1){
+      if(lockedSet.has(x+','+y)){ message('此子已被铁链锁住，挪移不得'); return; }
+      if(board[y][x] === opp){ selectedForSkill = {x:x,y:y}; skillStep = 2; message('已择子，请点一处空交叉点安置'); render(); }
+      else message('请点选对手的一颗棋子');
+    } else {
+      if(board[y][x] === EMPTY && !(selectedForSkill.x===x && selectedForSkill.y===y)){
+        FX.clearTimers();
+        const srcx = selectedForSkill.x, srcy = selectedForSkill.y;
+        board[srcy][srcx] = EMPTY;
+        board[y][x] = opp;
+        sfx('yixing'); FX.yixing(x, y);
+        if(checkAndRegisterFive(x, y, opp)) return;
+        message('移星换斗：已挪移对手一子，请落子'); finishSkill(false);
+      } else message('请点选空交叉点');
+    }
+  }
+  else if(skill === 'tongqiang'){
+    if(board[y][x] === EMPTY){
+      if(banned && banned.x === x && banned.y === y){
+        message('此点已是铜墙铁壁所封之点，请另选'); return;
+      }
+      FX.clearTimers();
+      banned = {x:x, y:y, setter:current};
+      sfx('tongqiang'); FX.tongqiang(x, y);
+      message('铜墙铁壁：已封此点，本局双方皆不得落子，请落子'); finishSkill(false);
+    }
+    else message('请点选空交叉点');
+  }
+  else if(skill === 'xinghuo'){
+    if(skillStep === 1){
+      if(board[y][x] === EMPTY){ selectedForSkill = {x:x,y:y}; skillStep = 2; message('已择第一子，请点与之相邻（横竖斜皆可）的空点'); render(); }
+      else message('请点选空交叉点');
+    } else {
+      const dx = Math.abs(x - selectedForSkill.x), dy = Math.abs(y - selectedForSkill.y);
+      const adj = (dx + dy === 1) || (dx === 1 && dy === 1);
+      if(board[y][x] === EMPTY && adj){
+        FX.clearTimers();
+        board[selectedForSkill.y][selectedForSkill.x] = current;
+        board[y][x] = current;
+        sfx('xinghuo'); FX.xinghuo(selectedForSkill, {x:x,y:y});
+        if(checkAndRegisterFive(selectedForSkill.x, selectedForSkill.y, current)) return;
+        if(checkAndRegisterFive(x, y, current)) return;
+        message('星火燎原：两子已落，本回合止'); finishSkill(true);
+      } else message('请点与第一子相邻（含斜向）的空点');
+    }
+  }
+  else if(skill === 'zemo'){
+    if(lockedSet.has(x+','+y)){ message('此子已被铁链锁住，易帜不得'); return; }
+    if(board[y][x] === opp){
+      FX.clearTimers();
+      board[y][x] = current;
+      sfx('zemo'); FX.zemo(x, y);
+      if(checkAndRegisterFive(x, y, current)) return;
+      message('择木而栖：已令该子易帜归我，请落子'); finishSkill(false);
+    } else message('请点选对手的一颗棋子');
+  }
+}
+
+/* ===================== AI ===================== */
+function triggerAI(){
+  if(gameMode !== 'pve') return;
+  if(current !== P2) return;
+  if(mode !== 'play') return;
+  if(aiThinking) return;
+  aiThinking = true;
+  render();
+  setTimeout(()=>{
+    aiThinking = false;
+    if(mode !== 'play' || current !== P2) return;
+    const decision = aiDecideSkill();
+    if(decision){
+      const endsTurn = (decision.skill === 'xinghuo'); // 仅星火燎原落两子即止；两级反转后仍须落一子
+      aiExecuteSkill(decision);
+      if(endsTurn) return; // 星火燎原 已结束本回合
+      // 非落子类绝学：施展后仍须落一子
+      if(mode !== 'play') return;
+      const m = aiFindMove();
+      if(m) placeStone(m.x, m.y);
+    } else {
+      const m = aiFindMove();
+      if(m) placeStone(m.x, m.y);
+    }
+  }, 650);
+}
+
+function scoreCell(x, y, color){
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  let total = 0, maxL = 0;
+  for(let d=0;d<4;d++){
+    const dx=dirs[d][0], dy=dirs[d][1];
+    let len=1, i=1;
+    while(inB(x+dx*i, y+dy*i) && board[y+dy*i][x+dx*i]===color && !lockedSet.has((x+dx*i)+','+(y+dy*i))){ len++; i++; }
+    i=1;
+    while(inB(x-dx*i, y-dy*i) && board[y-dy*i][x-dx*i]===color && !lockedSet.has((x-dx*i)+','+(y-dy*i))){ len++; i++; }
+    if(len >= 5) return 100000;
+    const arr = [0,1,5,50,1000];
+    total += arr[Math.min(len,4)];
+    if(len > maxL) maxL = len;
+  }
+  return total;
+}
+
+function aiFindMove(){
+  const me = P2, opp = P1;
+  let best = null, bestScore = -1;
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    if(board[y][x] !== EMPTY) continue;
+    if(banned && banned.x === x && banned.y === y) continue;
+    const off = scoreCell(x, y, me);
+    if(off >= 100000) return { x:x, y:y };
+    const def = scoreCell(x, y, opp);
+    const noise = Math.random()*3;
+    const total = off + def*0.95 + noise;
+    if(total > bestScore){ bestScore = total; best = {x:x, y:y}; }
+  }
+  return best;
+}
+
+function aiDecideSkill(){
+  if(!players[P2].skillReady) return null;
+  if(players[P2].skillBlockedTurns > 0) return null;
+  const skill = players[P2].char.skill;
+  const opp = P1;
+
+  if(skill === 'tongqiang'){
+    for(let ty=0;ty<N;ty++) for(let tx=0;tx<N;tx++){
+      if(board[ty][tx] !== EMPTY) continue;
+      if(banned && banned.x === tx && banned.y === ty) continue;
+      if(getLineLengths(tx, ty, opp).some(L=>L>=5) || getFiveCells(tx,ty,opp)) return { skill:'tongqiang', x:tx, y:ty };
+    }
+  }
+  if(skill === 'xinghuo'){
+    let bestPair=null, bestSum=0;
+    for(let yy=0;yy<N;yy++) for(let xx=0;xx<N;xx++){
+      if(board[yy][xx] !== EMPTY) continue;
+      if(banned && banned.x === xx && banned.y === yy) continue;
+      const nbrs = [[1,0],[0,1],[1,1],[1,-1],[-1,1],[-1,0],[0,-1],[-1,-1]];
+      for(let d=0;d<nbrs.length;d++){
+        const nx=xx+nbrs[d][0], ny=yy+nbrs[d][1];
+        if(!inB(nx,ny) || board[ny][nx] !== EMPTY) continue;
+        if(banned && banned.x === nx && banned.y === ny) continue;
+        board[yy][xx]=P2; board[ny][nx]=P2;
+        const s = scoreCell(xx,yy,P2) + scoreCell(nx,ny,P2);
+        board[yy][xx]=EMPTY; board[ny][nx]=EMPTY;
+        if(s > bestSum){ bestSum = s; bestPair=[{x:xx,y:yy},{x:nx,y:ny}]; }
+      }
+    }
+    if(bestPair && bestSum >= 60) return { skill:'xinghuo', a:bestPair[0], b:bestPair[1] };
+  }
+  if(skill === 'feisha'){
+    let best=null, bestScore=0;
+    for(let fy=0;fy<N;fy++) for(let fx=0;fx<N;fx++){
+      if(board[fy][fx] !== opp) continue;
+      if(lockedSet.has(fx+','+fy)) continue;
+      const sf = scoreCell(fx, fy, opp);
+      if(sf > bestScore){ bestScore = sf; best = {x:fx, y:fy}; }
+    }
+    if(best && bestScore >= 50) return { skill:'feisha', x:best.x, y:best.y };
+  }
+  if(skill === 'yixing'){
+    let bs=null, bss=0;
+    for(let yq=0;yq<N;yq++) for(let xq=0;xq<N;xq++){
+      if(board[yq][xq] !== opp) continue;
+      if(lockedSet.has(xq+','+yq)) continue;
+      const sq = scoreCell(xq, yq, opp);
+      if(sq > bss){ bss = sq; bs = {x:xq, y:yq}; }
+    }
+    if(bs && bss >= 50){
+      let dBest=null, dScore=999999;
+      for(let yr=0;yr<N;yr++) for(let xr=0;xr<N;xr++){
+        if(board[yr][xr] !== EMPTY) continue;
+        if(banned && banned.x === xr && banned.y === yr) continue;
+        const sd = scoreCell(xr, yr, opp);
+        if(sd < dScore){ dScore = sd; dBest = {x:xr, y:yr}; }
+      }
+      if(dBest) return { skill:'yixing', src:bs, dst:dBest };
+    }
+  }
+  if(skill === 'zemo'){
+    let best=null, bestScore=0;
+    for(let fy=0;fy<N;fy++) for(let fx=0;fx<N;fx++){
+      if(board[fy][fx] !== opp) continue;
+      if(lockedSet.has(fx+','+fy)) continue;
+      board[fy][fx] = P2;
+      const w = getLineLengths(fx, fy, P2).some(L=>L>=5);
+      board[fy][fx] = opp;
+      if(w) return { skill:'zemo', x:fx, y:fy };
+      const s = scoreCell(fx, fy, opp);
+      if(s > bestScore){ bestScore = s; best = {x:fx, y:fy}; }
+    }
+    if(best && bestScore >= 50) return { skill:'zemo', x:best.x, y:best.y };
+  }
+  if(skill === 'diaohu'){
+    if(players[P1].skillReady && Math.random() < 0.7) return { skill:'diaohu' };
+  }
+  if(skill === 'liangji'){
+    if(Math.random() < 0.25) return { skill:'liangji' };
+  }
+  if(skill === 'jingru' && Math.random() < 0.4) return { skill:'jingru' };
+  if(skill === 'dongshan' && history.length >= 2 && Math.random() < 0.3) return { skill:'dongshan' };
+  return null;
+}
+
+function aiExecuteSkill(d){
+  const skill = d.skill;
+  if(skill === 'jingru' || skill === 'dongshan' || skill === 'liba' || skill === 'diaohu' || skill === 'liangji' || skill === 'zemo'){
+    activateSkill(true); // AI 不受 canControl（人类操控位）限制
+    if(skill === 'zemo'){ handleSkillClick(d.x, d.y); }
+    return;
+  }
+  activateSkill(true);
+  if(skill === 'yixing'){ handleSkillClick(d.src.x, d.src.y); handleSkillClick(d.dst.x, d.dst.y); }
+  else if(skill === 'xinghuo'){ handleSkillClick(d.a.x, d.a.y); handleSkillClick(d.b.x, d.b.y); }
+  else { handleSkillClick(d.x, d.y); }
+}
+
+/* ===================== 技能特效 ===================== */
+const FX = {
+  _layer:null, _title:null, _wrap:null, _board:null, _timers:[],
+  init(){
+    this._layer = document.getElementById('fxLayer');
+    this._title = document.getElementById('fxTitle');
+    this._board = document.getElementById('boardWrap');
+  },
+  clearTimers(){ this._timers.forEach(clearTimeout); this._timers = []; },
+  _cssVar(name, fallback){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; },
+  // 中央主题色大字（逐字入场 + 渐变字身 + 描边 + 同色光晕）
+  title(color, text, sub){
+    if(!this._title) return;
+    const base = color || '#ffffff';
+    this._title.style.setProperty('--tc', base);
+    this._title.style.setProperty('--tc2', shadeHex(base, -0.38));
+    this._title.innerHTML = '';
+    const chars = String(text || '').split('');
+    chars.forEach((ch, i)=>{
+      const s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = ch;
+      s.style.animationDelay = (i * 0.09) + 's';
+      this._title.appendChild(s);
+    });
+    const subText = sub || SKILL_SUB[String(text || '')] || '';
+    if(subText){
+      const sb = document.createElement('span');
+      sb.className = 'sub';
+      sb.textContent = subText;
+      sb.style.animationDelay = (chars.length * 0.09 + 0.12) + 's';
+      this._title.appendChild(sb);
+    }
+    this._title.classList.remove('show');
+    void this._title.offsetWidth;
+    this._title.classList.add('show');
+    const t = setTimeout(()=>{ if(this._title) this._title.classList.remove('show'); }, 1950);
+    this._timers.push(t);
+    // 全盘主题色渲染
+    this._spawnLayer('tint', base);
+  },
+  _spawnLayer(className, color){
+    if(!this._layer) return null;
+    if(className) this._layer.classList.add(className);   // 空类名会抛异常，必须判空
+    if(color) this._layer.style.setProperty('--c', color);
+    const t = setTimeout(()=>{ if(className) this._layer.classList.remove(className); }, 1750);
+    this._timers.push(t);
+    return this._layer;
+  },
+  // 清空层里已生成的元素
+  _wipe(){
+    if(this._layer) this._layer.innerHTML = '';
+  },
+  // 棋盘晃荡
+  shakeBoard(){
+    const b = this._board; if(!b) return;
+    b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+    const t = setTimeout(()=> b.classList.remove('shake'), 650);
+    this._timers.push(t);
+  },
+  // 一次性在层内生成 n 个飘散元素（用于沙/雪/火/星等）
+  particles(cls, color, n, spawner){
+    const L = this._spawnLayer(cls, color);
+    if(!L) return;
+    for(let i=0;i<n;i++){
+      const el = spawner ? spawner() : document.createElement('i');
+      L.appendChild(el);
+      const t = setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 1600);
+      this._timers.push(t);
+    }
+  },
+  /* ===== 各技能特效 ===== */
+  feisha(x, y){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.feisha, '飞沙走石');
+    this.particles('sand', '#e6a220', 46, ()=>{
+      const el = document.createElement('i');
+      const r = Math.random();
+      el.style.left = (10 + Math.random()*80) + '%';
+      el.style.top = (20 + Math.random()*55) + '%';
+      el.style.setProperty('--dx', (Math.random()*160 - 80) + 'px');
+      el.style.setProperty('--dy', (80 + Math.random()*120) + 'px');
+      return el;
+    });
+    // 目标化为沙尘
+    if(x!==undefined && y!==undefined){
+      const px = PAD + x*CELL, py = PAD + y*CELL;
+      this._burst(px, py, '#c9a05a', 16, true);
+    }
+  },
+  jingru(){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.jingru, '静如止水');
+    // 冰冻粒子铺满 + 雪花
+    this.particles('frost', '#20b8e6', 36, ()=>{
+      const el = document.createElement('i');
+      el.style.left = (Math.random()*100) + '%';
+      el.style.top = '0%';
+      return el;
+    });
+    // 玩家框周围冰晶：在面板上加类
+    this.icePanel(other(current));
+  },
+  liba(){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.liba, '力拔山兮');
+    this.shakeBoard();
+    // 所有棋子向屏幕飞来：生成由棋子色构成的上升粒子（以整个棋盘为主观）
+    this.particles('flame', '#e02480', 40, ()=>{
+      const el = document.createElement('i');
+      el.style.left = (Math.random()*100) + '%';
+      el.style.bottom = (Math.random()*40) + '%';
+      el.style.background = Math.random()<0.5 ? 'radial-gradient(circle,#333,#111)' : 'radial-gradient(circle,#fff,#ddd)';
+      return el;
+    });
+  },
+  dongshan(){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.dongshan, '东山再起');
+    this.particles('grow', '#7ed957', 12, ()=>{
+      const el = document.createElement('b');
+      el.textContent = ['✿','❀','🌱','🌿','☘','🍀'][Math.floor(Math.random()*6)];
+      el.style.left = (Math.random()*90) + '%';
+      el.style.top = (30 + Math.random()*45) + '%';
+      el.style.fontSize = (20 + Math.random()*18) + 'px';
+      return el;
+    });
+  },
+  yixing(x, y){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.yixing, '移星换斗');
+    // 北斗七星
+    this.particles('star', '#b174e7', 7, ()=>{
+      const el = document.createElement('i');
+      const cx = 50, cy = 48, pts = [[-14,-2],[-8,-8],[2,-9],[11,-6],[19,-12],[26,-14],[33,-17]];
+      const off = Math.random();
+      // 采用均匀七个点做近似北斗排列
+      const i2 = Math.floor(Math.random()*pts.length);
+      el.style.left = (cx + pts[i2][0]) + '%';
+      el.style.top = (cy + pts[i2][1]) + '%';
+      el.style.animationDelay = (Math.random()*0.3) + 's';
+      return el;
+    });
+    if(x!==undefined && y!==undefined){
+      // 拖尾星尘落点
+      this._burst(PAD + x*CELL, PAD + y*CELL, '#b174e7', 14, false);
+    }
+  },
+  tongqiang(x, y){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.tongqiang, '铜墙铁壁');
+    // 钟形扩散
+    this.particles('bell', '#1f48ff', 16, ()=>{
+      const el = document.createElement('i');
+      el.textContent = ['🔔','🛡','⚜','🪞'][Math.floor(Math.random()*4)];
+      el.style.left = (Math.random()*100) + '%';
+      el.style.top = (Math.random()*90) + '%';
+      el.style.fontSize = (22 + Math.random()*20) + 'px';
+      return el;
+    });
+    if(x!==undefined && y!==undefined){
+      this._burst(PAD + x*CELL, PAD + y*CELL, '#1f48ff', 12, false);
+    }
+  },
+  xinghuo(a, b){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.xinghuo, '星火燎原');
+    // 棋盘周围一圈火焰
+    this.particles('flame', '#e62828', 42, ()=>{
+      const el = document.createElement('i');
+      const edge = Math.random();
+      if(edge<0.25){ el.style.left='2%'; el.style.top=(5+Math.random()*90)+'%'; }
+      else if(edge<0.5){ el.style.left='92%'; el.style.top=(5+Math.random()*90)+'%'; }
+      else if(edge<0.75){ el.style.left=(5+Math.random()*90)+'%'; el.style.top='3%'; }
+      else { el.style.left=(5+Math.random()*90)+'%'; el.style.bottom='4%'; el.style.top='auto'; }
+      return el;
+    });
+    if(a){ this._burst(PAD + a.x*CELL, PAD + a.y*CELL, '#e62828', 10, false); }
+    if(b){ this._burst(PAD + b.x*CELL, PAD + b.y*CELL, '#e62828', 10, false); }
+  },
+  zemo(x, y){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.zemo, '择木而栖');
+    // 一只鸟从发动方一侧飞往目标棋子（均为棋盘内像素坐标）
+    const sx = current === P1 ? 24 : (SIZE - 24);
+    const sy = SIZE - 26;
+    const tx = (x!==undefined && y!==undefined) ? PAD + x*CELL : (SIZE/2);
+    const ty = (x!==undefined && y!==undefined) ? PAD + y*CELL : 30;
+    const el = document.createElement('i');
+    el.textContent = '🕊';
+    el.style.fontSize = '36px';
+    el.style.left = sx + 'px';
+    el.style.top = sy + 'px';
+    el.style.setProperty('--dx', (tx - sx) + 'px');
+    el.style.setProperty('--dy', (ty - sy) + 'px');
+    const L = this._spawnLayer('bird', '#2e6417');
+    if(L){ L.appendChild(el); const t = setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 1500); this._timers.push(t); }
+    if(x!==undefined && y!==undefined) this._burst(PAD + x*CELL, PAD + y*CELL, '#4caf50', 10, false);
+  },
+  diaohu(){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.diaohu, '调虎离山');
+    // 老虎抓对手面板一次
+    this.tigerClaw(other(current));
+  },
+  liangji(){
+    this._wipe();
+    this.title(SKILL_BY_COLOR.liangji, '两级反转');
+    // 中央太极图（用户提供，背景已去除）
+    const layer = this._spawnLayer('', null);
+    if(layer){
+      let taiji = document.getElementById('taiji');
+      if(!taiji){
+        taiji = document.createElement('div');
+        taiji.id = 'taiji';
+        const img = document.createElement('img');
+        img.src = 'taiji.png';
+        img.alt = '太极';
+        img.draggable = false;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        taiji.appendChild(img);
+        document.getElementById('fxLayer').appendChild(taiji);
+      }
+      taiji.classList.remove('show'); void taiji.offsetWidth; taiji.classList.add('show');
+      const t = setTimeout(()=>{ if(taiji) taiji.classList.remove('show'); }, 2300);
+      this._timers.push(t);
+    }
+  },
+  /* 小工具：圆点爆裂（用于目标落点） */
+  _burst(px, py, color, n, grave){
+    const L = this._spawnLayer('', null);
+    if(!L) return;
+    for(let i=0;i<n;i++){
+      const el = document.createElement('i');
+      el.className = 'fxdust';
+      el.style.background = color;
+      const a = Math.random()*Math.PI*2, d = 20 + Math.random()*46;
+      el.style.left = px + 'px'; el.style.top = py + 'px';
+      el.style.setProperty('--dx', Math.cos(a)*d + 'px');
+      el.style.setProperty('--dy', (Math.sin(a)*d - 16) + 'px');
+      el.style.width = el.style.height = (3+Math.random()*5)+'px';
+      L.appendChild(el);
+      const t = setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 1000);
+      this._timers.push(t);
+    }
+  },
+  /* 面板冰晶（静如） */
+  icePanel(pid){
+    const panel = document.getElementById('panel'+pid);
+    if(!panel) return;
+    panel.classList.add('freezing');
+    const t = setTimeout(()=> panel.classList.remove('freezing'), 1600);
+    this._timers.push(t);
+  },
+  /* 老虎爪痕划过面板（调虎） */
+  tigerClaw(pid){
+    const panel = document.getElementById('panel'+pid);
+    if(!panel) return;
+    // 在面板右上叠爪痕
+    let claw = panel.querySelector('.tigerClawEl');
+    if(!claw){ claw = document.createElement('div'); claw.className='tigerClawEl'; claw.style.cssText='position:absolute; right:4px; top:4px; font-size:52px; pointer-events:none; z-index:5; animation:fxFadeSlash .7s ease forwards;'; panel.appendChild(claw); }
+    claw.textContent = '🐅';
+    claw.style.animation = 'none'; void claw.offsetWidth; claw.style.animation = 'fxFadeSlash .8s ease forwards';
+    const t = setTimeout(()=>{ claw.textContent=''; }, 900);
+    this._timers.push(t);
+  }
+};
+// 颜色深浅调节（用于渐变字身）
+function shadeHex(hex, amt){
+  try{
+    let h = String(hex).replace('#','');
+    if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    const n = parseInt(h, 16);
+    let r = (n>>16)&255, g = (n>>8)&255, b = n&255;
+    if(amt < 0){ r = Math.round(r*(1+amt)); g = Math.round(g*(1+amt)); b = Math.round(b*(1+amt)); }
+    else { r = Math.round(r+(255-r)*amt); g = Math.round(g+(255-g)*amt); b = Math.round(b+(255-b)*amt); }
+    r = Math.max(0,Math.min(255,r)); g = Math.max(0,Math.min(255,g)); b = Math.max(0,Math.min(255,b));
+    return '#' + ((1<<24) + (r<<16) + (g<<8) + b).toString(16).slice(1);
+  }catch(e){ return hex; }
+}
+// 兜底：任何特效异常都不得中断棋局逻辑
+(function(){
+  Object.keys(FX).forEach(function(k){
+    const v = FX[k];
+    if(typeof v === 'function' && k !== 'init'){
+      FX[k] = function(){ try{ return v.apply(FX, arguments); }catch(e){ return null; } };
+    }
+  });
+})();
+
+// 主题色表
+const SKILL_BY_COLOR = {};
+SKILLS.forEach(s => SKILL_BY_COLOR[s.skill] = s.color);
+const SKILL_BY_ID = {}; SKILLS.forEach(s => SKILL_BY_ID[s.id] = s);
+// 大字落款（招式意境）
+const SKILL_SUB = {
+  '飞沙走石':'风卷狂沙 · 一子成尘',
+  '静如止水':'寒潭凝冰 · 万籁俱寂',
+  '力拔山兮':'气拔山河 · 乾坤重整',
+  '东山再起':'春回东山 · 草木复生',
+  '移星换斗':'斗转星移 · 天机暗换',
+  '铜墙铁壁':'金声玉振 · 坚不可摧',
+  '星火燎原':'星星之火 · 可以燎原',
+  '择木而栖':'良禽择木 · 一子归心',
+  '调虎离山':'虎啸风生 · 引虎出山',
+  '两级反转':'阴阳倒转 · 黑白易位'
+};
+
+/* ===================== 渲染 ===================== */
+function message(t){ document.getElementById('status').innerHTML = t; }
+
+function render(){
+  renderPanels();
+  renderBoard();
+  const p = players ? players[current] : null;
+  const btnSkill = document.getElementById('btnSkill');
+  const btnCancel = document.getElementById('btnCancel');
+  if(btnSkill){
+    const can = mode === 'play' && canControl(current) && p && p.skillReady && !(p.skillBlockedTurns > 0) && !aiThinking;
+    btnSkill.disabled = !can;
+  }
+  if(btnCancel){
+    btnCancel.style.display = (mode === 'skill') ? '' : 'none';
+  }
+}
+
+function renderPanels(){
+  for(let pid=1; pid<=2; pid++){
+    const pl = players[pid];
+    if(!pl) continue;
+    const el = document.getElementById('panel'+pid);
+    el.style.setProperty('--char-color', pl.char.color);
+    const isActive = (current === pid && (mode === 'play' || mode === 'skill'));
+    el.classList.toggle('active', isActive);
+    const aiTag = (gameMode === 'pve' && pid === P2) ? '<span class="aiTag">AI</span>' : '';
+    const thinking = (aiThinking && current === pid) ? ' <span class="thinking">思忖…</span>' : '';
+    const stoneName = (pl.stoneColor === 'dark') ? '执黑' : '执白';
+    const stoneCls = (pl.stoneColor === 'dark') ? 'dark' : 'light';
+    el.innerHTML =
+      '<div class="phead">' +
+        '<span class="dot" style="background:' + pl.char.color + '"></span>' +
+        '<span class="pname">' + pl.name + aiTag + '</span>' +
+        '<span class="stoneTag ' + stoneCls + '"><i></i>' + stoneName + '</span>' +
+        (isActive ? '<span class="turn">● 当前回合</span>' : '') + thinking +
+      '</div>' +
+      '<div class="charname" data-chant="' + pl.char.name + '" title="点击即喊出此招" style="color:' + pl.char.color + ';cursor:pointer;">绝学·' + pl.char.name + ' <span style="font-size:10px;opacity:.6;">喊</span></div>' +
+      '<div class="skilldesc">' + pl.char.desc + '</div>' +
+      '<div class="charge"><div class="chargebar ' + (pl.skillReady ? 'ready' : '') + '" style="width:' + pl.charge + '%"></div></div>' +
+      '<div class="chargestat' + (pl.skillReady ? ' ready' : '') + '">' + (pl.skillReady ? '✦ 绝学已备' : ((pl.skillBlockedTurns > 0) ? '⛔ 绝学被封（剩'+pl.skillBlockedTurns+'回合）' : '蓄气中…')) + '</div>' +
+      '<div class="lives">' + '♥'.repeat(Math.max(0, pl.lives)) + '♡'.repeat(Math.max(0, 3 - pl.lives)) + '</div>';
+  }
+}
+
+function renderBoard(){
+  if(!ctx) return;
+  // 金锁绘制 helper
+  if(typeof _drawLockMark !== 'function'){
+    _drawLockMark = function(px, py, cell){
+      const s = cell * 0.17;
+      ctx.strokeStyle = '#6b5715'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(px, py - s, s*0.95, Math.PI*1.05, -Math.PI*0.05); ctx.stroke();
+      ctx.fillStyle = '#e3bd3f';
+      ctx.fillRect(px - s*1.15, py - s, s*2.3, s*1.9);
+      ctx.strokeStyle = '#6b5715'; ctx.lineWidth = 2;
+      ctx.strokeRect(px - s*1.15, py - s, s*2.3, s*1.9);
+      ctx.fillStyle = '#6b5715';
+      ctx.beginPath(); ctx.arc(px, py - s*0.05, s*0.35, 0, Math.PI*2); ctx.fill();
+    };
+    _drawLockMarkOnKey = function(k){
+      const parts = k.split(',');
+      const px = PAD + parseInt(parts[0],10)*CELL, py = PAD + parseInt(parts[1],10)*CELL;
+      _drawLockMark(px, py, CELL);
+    };
+  }
+  if(!board) return;               // 开局前棋盘尚未建立，别让渲染循环直接崩掉
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#e9c08a';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.strokeStyle = 'rgba(60,40,20,.55)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<N;i++){
+    const p = PAD + i * CELL;
+    ctx.beginPath(); ctx.moveTo(PAD, p); ctx.lineTo(PAD + (N-1)*CELL, p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p, PAD); ctx.lineTo(p, PAD + (N-1)*CELL); ctx.stroke();
+  }
+
+  // 技能目标高亮
+  const hlStones = new Set(); let hlEmpty = false;
+  if(mode === 'skill'){
+    const opp = other(current);
+    if(pendingSkill === 'feisha' || pendingSkill === 'yixing' || pendingSkill === 'zemo'){
+      const set = new Set();
+      for(let yy=0;yy<N;yy++) for(let xx=0;xx<N;xx++) if(board[yy][xx] === opp) set.add(xx+','+yy);
+      set.forEach(k=>hlStones.add(k));
+    }
+    if((pendingSkill === 'yixing' && skillStep === 2) || pendingSkill === 'tongqiang' || pendingSkill === 'xinghuo') hlEmpty = true;
+  }
+  if(hlEmpty){
+    ctx.fillStyle = 'rgba(63,143,91,.30)';
+    for(let ye=0;ye<N;ye++) for(let xe=0;xe<N;xe++) if(board[ye][xe] === EMPTY){
+      ctx.beginPath(); ctx.arc(PAD + xe*CELL, PAD + ye*CELL, 5, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  hlStones.forEach(k=>{
+    const parts = k.split(',');
+    const sx = parseInt(parts[0],10), sy = parseInt(parts[1],10);
+    const cx = PAD + sx*CELL, cy = PAD + sy*CELL;
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, CELL*0.42, 0, Math.PI*2); ctx.stroke();
+  });
+  if(banned){
+    const bx = PAD + banned.x*CELL, by = PAD + banned.y*CELL;
+    // 蓝底方框 + 红叉 —— 铜墙铁壁封点（本局双方均不得落）
+    ctx.fillStyle = 'rgba(31, 72, 255, 0.22)';
+    ctx.fillRect(bx - 13, by - 13, 26, 26);
+    ctx.strokeStyle = '#1f48ff'; ctx.lineWidth = 2.5;
+    ctx.strokeRect(bx - 13, by - 13, 26, 26);
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(bx-9, by-9); ctx.lineTo(bx+9, by+9);
+    ctx.moveTo(bx+9, by-9); ctx.lineTo(bx-9, by+9); ctx.stroke();
+  }
+  if(selectedForSkill){
+    const cxs = PAD + selectedForSkill.x*CELL, cys = PAD + selectedForSkill.y*CELL;
+    ctx.strokeStyle = '#e0a458'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cxs, cys, CELL*0.42, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // 棋子
+  for(let yb=0;yb<N;yb++) for(let xb=0;xb<N;xb++){
+    if(board[yb][xb] === EMPTY) continue;
+    const cbx = PAD + xb*CELL, cby = PAD + yb*CELL;
+    const r = CELL * 0.40;
+    const dark = (players[board[yb][xb]].stoneColor === 'dark');
+    const grad = ctx.createRadialGradient(cbx - r*0.3, cby - r*0.3, r*0.2, cbx, cby, r);
+    if(dark){ grad.addColorStop(0, '#555'); grad.addColorStop(1, '#111'); }
+    else { grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#cfcfcf'); }
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cbx, cby, r, 0, Math.PI*2); ctx.fill();
+    if(!dark){ ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+
+  // 铁链锁（叠加在棋子之上，醒目）。动画中的串按 n 颗渐次上锁
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  lockedChains.forEach((chain, ci)=>{
+    if(chain.length < 2) return;
+    const animating = chainAnim && chainAnim.chainIdx === ci;
+    const k = _chainReveal(ci);           // 动画中/pending 只画到第 k 颗；已完成画全长
+    if(k < 2) return;
+    // 深色描边，与黑白棋子拉开层次
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 11;
+    ctx.beginPath();
+    for(let i=0;i<k;i++){
+      const px = PAD + chain[i].x*CELL, py = PAD + chain[i].y*CELL;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // 主链身：赤金
+    ctx.strokeStyle = '#e0a92c'; ctx.lineWidth = 6.5;
+    ctx.beginPath();
+    for(let i=0;i<k;i++){
+      const px = PAD + chain[i].x*CELL, py = PAD + chain[i].y*CELL;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // 中线高光
+    ctx.strokeStyle = '#ffe9a3'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let i=0;i<k;i++){
+      const px = PAD + chain[i].x*CELL, py = PAD + chain[i].y*CELL;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // 链节：相邻子中点处画链环
+    for(let j=0;j<k-1;j++){
+      const ax = PAD+chain[j].x*CELL, ay = PAD+chain[j].y*CELL;
+      const bx = PAD+chain[j+1].x*CELL, by = PAD+chain[j+1].y*CELL;
+      const mx=(ax+bx)/2, my=(ay+by)/2;
+      const ang = Math.atan2(by-ay, bx-ax);
+      ctx.save();
+      ctx.translate(mx,my); ctx.rotate(ang);
+      ctx.strokeStyle = '#5b636b'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.ellipse(0,0, CELL*0.18, CELL*0.12, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = '#e8eef3'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(0,0, CELL*0.12, CELL*0.07, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+    // 动画串的"正在上锁"位：第 n 颗子上的发光光环（自最后一颗到当前的链上发出脉冲）
+    if(animating && chainAnim.n < chain.length){
+      const target = chain[chainAnim.n];
+      const tx = PAD + target.x*CELL, ty = PAD + target.y*CELL;
+      const phase = (Date.now() - chainAnim.t0) / CHAIN_STEP;     // 0~1 循环
+      const local = phase - Math.floor(phase);                    // 当前周期内进度
+      const r0 = CELL * 0.30, r1 = CELL * 0.78;
+      const r = r0 + (r1 - r0) * local;
+      const alpha = (1 - local) * 0.85;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 220, 120, ' + alpha + ')';
+      ctx.lineWidth = 4 + 2 * (1 - local);
+      ctx.beginPath(); ctx.arc(tx, ty, r, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 235, 170, ' + alpha * 0.6 + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(tx, ty, r * 0.62, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // 每个锁子顶部画一枚金锁标记（随 _chainReveal 上锁：动画中只画已锁的，pending 串先不画）
+  const markerSeen = {};
+  lockedChains.forEach((chain, ci)=>{
+    const reveal = _chainReveal(ci);
+    for(let i=0;i<reveal;i++){
+      const px = PAD + chain[i].x*CELL, py = PAD + chain[i].y*CELL;
+      _drawLockMark(px, py, CELL);
+      markerSeen[chain[i].x+','+chain[i].y] = true;
+    }
+  });
+  // 兜底：链数据外仍属锁定集合的点也补锁标记（正常不会走到，防御用）
+  if(lockedChains.length === 0){
+    lockedSet.forEach(k=>{ if(!markerSeen[k]) _drawLockMarkOnKey(k); });
+  }
+  ctx.restore();
+
+  // 阶段③：五子金光齐闪（赢家五子在锁链之上整体泛金光两轮）
+  if(winFlash){
+    const el = Date.now() - winFlash.t0;              // 0~980ms
+    const t01 = Math.min(1, el / 980);
+    // 两轮脉冲：0~0.5 / 0.5~1.0
+    const pulse = Math.abs(((t01 * 2) % 1) * 2 - 1); // 0→1→0 每轮
+    const glow = 0.5 + 0.5 * pulse;
+    ctx.save();
+    winFlash.cells.forEach(function(cl){
+      const cx = PAD + cl.x*CELL, cy = PAD + cl.y*CELL;
+      const grad = ctx.createRadialGradient(cx, cy, CELL*0.1, cx, cy, CELL*0.85);
+      grad.addColorStop(0, 'rgba(255, 236, 150, ' + (0.25 + 0.6*glow) + ')');
+      grad.addColorStop(0.6, 'rgba(255, 205, 80, ' + (0.12 + 0.45*glow) + ')');
+      grad.addColorStop(1, 'rgba(255, 180, 40, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, CELL*0.85, 0, Math.PI*2); ctx.fill();
+      // 外圈金环
+      ctx.strokeStyle = 'rgba(255, 224, 130, ' + (0.3 + 0.7*glow) + ')';
+      ctx.lineWidth = 2.5 + 2*glow;
+      ctx.beginPath(); ctx.arc(cx, cy, CELL*(0.42 + 0.12*glow), 0, Math.PI*2); ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // 最后一手
+  if(history.length){
+    const last = history[history.length-1];
+    const clx = PAD + last.x*CELL, cly = PAD + last.y*CELL;
+    const dark = (players[last.color].stoneColor === 'dark');
+    ctx.strokeStyle = dark ? '#fff' : '#c4622d';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(clx, cly, CELL*0.18, 0, Math.PI*2); ctx.stroke();
+  }
+}
+
+function onCanvasClick(e){
+  if(mode !== 'play' && mode !== 'skill') return;
+  if(gameMode === 'pve' && current === P2) return;
+  if(!canControl(current)) return;
+  Sound.unlock();
+  const rect = canvas.getBoundingClientRect();
+  const sx = SIZE / rect.width;
+  const mx = (e.clientX - rect.left) * sx;
+  const my = (e.clientY - rect.top) * sx;
+  const x = Math.round((mx - PAD) / CELL);
+  const y = Math.round((my - PAD) / CELL);
+  if(x < 0 || x >= N || y < 0 || y >= N) return;
+  const ix = PAD + x*CELL, iy = PAD + y*CELL;
+  if(Math.hypot(mx - ix, my - iy) > CELL*0.5) return;
+  if(mode === 'play') placeStone(x, y);
+  else if(mode === 'skill') handleSkillClick(x, y);
+}
+
+function loop(){ updateChainAnim(); updateWinFlash(); if(ctx) renderBoard(); requestAnimationFrame(loop); }
+
+/* ===================== 棋盘自适应缩放 ===================== */
+/* 棋盘内部始终是 524px 的原始坐标系（点击换算用 getBoundingClientRect，特效层也在同一盒子里），
+   缩放只作用在 #boardWrap 上，因此手机窄屏也能整盘显示，且不破坏任何逻辑坐标。 */
+let boardZoom = 1;        // 用户手动倍率（持久化）
+let boardFitScale = 1;    // 容器自动适配倍率
+
+let boardNat = null;      // 棋盘原始尺寸（量一次即锁定）
+function boardNatural(){
+  const wrap = document.getElementById('boardWrap');
+  if(!wrap) return boardNat || { w:0, h:0 };
+  // 只在首次（#boardBox 尚未被设定宽度时）测量：此刻 wrap 是内容宽度 = 真实原始尺寸。
+  // 若每次都重测，块级 wrap 会被外层盒子的显式宽度"撑回"，越量越小、放大也回不去。
+  if(!boardNat){
+    const w = wrap.offsetWidth, h = wrap.offsetHeight;
+    if(w > 0 && h > 0) boardNat = { w:w, h:h };
+  }
+  return boardNat || { w:0, h:0 };
+}
+
+function fitBoard(){
+  const wrap = document.getElementById('boardWrap');
+  const fit = document.getElementById('boardFit');
+  const box = document.getElementById('boardBox');
+  if(!wrap || !fit) return;
+  const nat = boardNatural();
+  if(!nat.w) return;
+  const avail = fit.clientWidth || (document.documentElement.clientWidth - 20);
+  boardFitScale = Math.min(1, avail / nat.w);
+  let s = boardFitScale * boardZoom;
+  s = Math.max(0.3, Math.min(2.4, s));
+  wrap.style.setProperty('--bs', String(s));
+  // 布局盒同步缩小，窄屏才不会横向溢出一片空白
+  if(box){
+    box.style.width = Math.round(nat.w * s) + 'px';
+    box.style.height = Math.round(nat.h * s) + 'px';
+  }
+  const zv = document.getElementById('zoomVal');
+  if(zv) zv.textContent = Math.round(s * 100) + '%';
+}
+
+function setBoardZoom(z){
+  boardZoom = Math.max(0.5, Math.min(2.0, Math.round(z * 100) / 100));
+  try{ localStorage.setItem('gomoku_zoom', String(boardZoom)); }catch(e){}
+  fitBoard();
+}
+
+function initBoardZoom(){
+  try{
+    const v = parseFloat(localStorage.getItem('gomoku_zoom'));
+    if(v && isFinite(v)) boardZoom = Math.max(0.5, Math.min(2.0, v));
+  }catch(e){}
+  fitBoard();
+  window.addEventListener('resize', fitBoard);
+  window.addEventListener('orientationchange', ()=>setTimeout(fitBoard, 260));
+  const bi = document.getElementById('btnZoomIn');
+  const bo = document.getElementById('btnZoomOut');
+  const bf = document.getElementById('btnZoomFit');
+  if(bi) bi.onclick = ()=>{ Sound.unlock(); setBoardZoom(boardZoom + 0.1); };
+  if(bo) bo.onclick = ()=>{ Sound.unlock(); setBoardZoom(boardZoom - 0.1); };
+  if(bf) bf.onclick = ()=>{ Sound.unlock(); setBoardZoom(1); };
+}
+
+/* ===================== 喊招出招 ===================== */
+// 玩家可通过输入框或语音说出本门绝学之名来施展
+const SKILL_BY_NAME = {};
+SKILLS.forEach(c => { SKILL_BY_NAME[c.name] = c.skill; });
+// 别名表：值必须是「技能 id」，不能是中文名（否则与本门 id 比较必然失败）
+const NAME_NORM = {
+  '星火辽原':'xinghuo','星火燎源':'xinghuo','星火':'xinghuo','燎原':'xinghuo','十面埋伏':'xinghuo',
+  '断脉截流':'feisha','断脉':'feisha','截流':'feisha',
+  '飞沙走石':'feisha','飞沙':'feisha','走石':'feisha','沙走':'feisha',
+  '静如止水':'jingru','静如':'jingru','止水':'jingru','冰冻':'jingru','凝冰':'jingru',
+  '力拔山兮':'liba','力拔山河':'liba','力拔':'liba','拔山':'liba','拔山兮':'liba',
+  '东山再起':'dongshan','东山':'dongshan','再起':'dongshan','悔棋':'dongshan','悔一步':'dongshan',
+  '移星换斗':'yixing','移星':'yixing','换斗':'yixing','星移':'yixing','斗转':'yixing',
+  '铜墙铁壁':'tongqiang','铜墙':'tongqiang','铁壁':'tongqiang','封点':'tongqiang',
+  '择木而栖':'zemo','择木':'zemo','而栖':'zemo','易帜':'zemo','归心':'zemo',
+  '调虎离山':'diaohu','调虎':'diaohu','离山':'diaohu','偃武息戈':'diaohu','偃武':'diaohu','息戈':'diaohu','虎啸':'diaohu',
+  '两级反转':'liangji','两级':'liangji','反转':'liangji','易位':'liangji','换边':'liangji','黑白':'liangji','太极':'liangji','颠倒':'liangji'
+};
+// 拼音 / 英文别名
+const NAME_PINYIN = {
+  'feishazoushi':'feisha','feisha':'feisha','shazou':'feisha',
+  'jingruzhishui':'jingru','jingru':'jingru','zhishui':'jingru',
+  'libashanxi':'liba','liba':'liba','bashan':'liba',
+  'dongshanzaiqi':'dongshan','dongshan':'dongshan','zaiqi':'dongshan','huiqi':'dongshan',
+  'yixinghuandou':'yixing','yixing':'yixing','huandou':'yixing',
+  'tongqiangtiebi':'tongqiang','tongqiang':'tongqiang','tiebi':'tongqiang',
+  'xinghuoliaoyuan':'xinghuo','xinghuo':'xinghuo','liaoyuan':'xinghuo',
+  'zemoerqi':'zemo','zemo':'zemo','erqi':'zemo',
+  'diaohulishan':'diaohu','diaohu':'diaohu','lishan':'diaohu',
+  'liangjifanzhuan':'liangji','liangji':'liangji','fanzhuan':'liangji'
+};
+
+function normText(s){
+  return String(s === undefined || s === null ? '' : s)
+    .replace(/[\s\u3000]+/g, '')
+    .replace(/[，。！？、,.!?~～"'“”‘’·:：;；(){}\[\]<>《》\-—_]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+// 「奥义／绝学／技能」这类前缀词，喊的时候常带，须剥掉
+const CHANT_PREFIX = /^(奥义|绝学|绝招|绝技|技能|招式|招数|招术|大招|必杀|口诀|心法|我要用|我要使|我要|请用|使用|施展|施放|使出|使出招|出招|发招|发动|放出|放个|来一招|来个|给我|现在|快|请)/;
+const CHANT_SUFFIX = /(绝学|招式|招名|口诀|这一招|吧|啊|呢|哦|呀|啦|了|的)$/;
+
+function stripChantPrefix(t){
+  let p = t, guard = 0;
+  while(guard++ < 6){
+    const n = p.replace(CHANT_PREFIX, '');
+    if(n === p || !n) break;
+    p = n;
+  }
+  return p;
+}
+
+// t 中有多少个 name 的字符按顺序出现（用于容错识别，如「新火燎原」）
+function orderedHit(t, name){
+  let i = 0, hit = 0;
+  for(let k=0;k<name.length;k++){
+    const p = t.indexOf(name[k], i);
+    if(p >= 0){ hit++; i = p + 1; }
+  }
+  return hit;
+}
+
+// 把任意喊法解析成技能 id
+function resolveSkillName(raw){
+  const t = normText(raw);
+  if(!t) return null;
+  // 各种候选串：原句 / 去前缀 / 去后缀 / 前后缀都去
+  const cands = [];
+  const put = (s)=>{ if(s && s.length && cands.indexOf(s) < 0) cands.push(s); };
+  const tPre = stripChantPrefix(t);
+  const tSuf = t.replace(CHANT_SUFFIX, '');
+  put(t); put(tPre); put(tSuf); put(stripChantPrefix(tSuf));
+  let i, k;
+  for(k=0;k<cands.length;k++){ if(SKILL_BY_NAME[cands[k]]) return SKILL_BY_NAME[cands[k]]; }
+  for(k=0;k<cands.length;k++){ if(NAME_NORM[cands[k]]) return NAME_NORM[cands[k]]; }
+  for(k=0;k<cands.length;k++){ if(NAME_PINYIN[cands[k]]) return NAME_PINYIN[cands[k]]; }
+  // 整句里含某门绝学全名
+  for(k=0;k<cands.length;k++){
+    for(i=0;i<SKILLS.length;i++){ if(cands[k].indexOf(SKILLS[i].name) >= 0) return SKILLS[i].skill; }
+  }
+  // 喊出的是绝学全名的连续片段（≥2 字）
+  for(k=0;k<cands.length;k++){
+    if(cands[k].length >= 2){
+      for(i=0;i<SKILLS.length;i++){ if(SKILLS[i].name.indexOf(cands[k]) >= 0) return SKILLS[i].skill; }
+    }
+  }
+  // 容错：识别结果有错字时，按顺序命中的字数够多且唯一者即认
+  for(k=0;k<cands.length;k++){
+    let best = null, bestHit = 0, tie = 0;
+    for(i=0;i<SKILLS.length;i++){
+      const hit = orderedHit(cands[k], SKILLS[i].name);
+      if(hit > bestHit){ bestHit = hit; best = SKILLS[i].skill; tie = 1; }
+      else if(hit === bestHit && hit > 0){ tie++; }
+    }
+    if(best && bestHit >= 3 && tie === 1) return best;
+  }
+  return null;
+}
+
+function flashChantBox(){
+  const box = document.querySelector('.chantbox');
+  if(box){ box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
+}
+
+function chantSkill(text, viaVoice){
+  if(text === undefined || text === null) return;
+  Sound.unlock();
+  const raw = String(text).trim();
+  if(!raw) return;
+  if(!players || !players[current] || !players[current].char){ message('尚未开局，无从出招'); return; }
+  const me = players[current];
+  const skill = resolveSkillName(raw);
+  if(!skill){
+    flashChantBox();
+    message('未闻此招「' + raw + '」。阁下本门绝学为「' + me.char.name + '」');
+    return;
+  }
+  if(skill !== me.char.skill){
+    if(viaVoice) return;                 // 语音识别的杂句直接忽略，不刷屏
+    flashChantBox();
+    message('阁下擅「' + me.char.name + '」，岂可出「' + raw + '」');
+    return;
+  }
+  if(gameMode === 'pve' && current === P2){ message('子棋（电脑）之绝学自决，非人可代'); return; }
+  if(me.skillBlockedTurns > 0){ message('你被「调虎离山」所封，'+me.skillBlockedTurns+'回合内无法施展绝学'); return; }
+  if(mode === 'skill'){ message('绝学已起，请先择定目标或点「收招」'); return; }
+  if(mode !== 'play'){ message('非落子回合，不得出招'); return; }
+  if(!me.skillReady){ message('绝学尚未蓄满，蓄满方可喊招'); return; }
+  if(aiThinking){ message('对手正在思索，稍候再喊'); return; }
+  // 出招
+  flashChantBox();
+  const input = document.getElementById('chantInput');
+  if(input) input.value = '';
+  activateSkill();
+}
+
+/* ===================== 口呼喊招（免按钮） ===================== */
+/* 轮到你、蓄力已满时，不必点任何按钮，喊「奥义／绝学／技能 + 招名」即出招。
+   两套引擎：
+     asr   —— 浏览器语音识别，能听懂具体招名；持续聆听、断了自动重启。
+     level —— 声压＋音节兜底。每位对局者本局只有一门绝学，
+              所以只要「听见你喊了一声」就能出招，不必知道喊的是哪四个字。
+   国内网络下 Chrome/Edge 的识别服务往往连不通，会自动回落到 level，
+   因此「电脑 / iPad / 手机」都出得了招。 */
+const Voice = {
+  SR: null,
+  on: true,
+  armed: false,
+  engine: 'off',          // off / asr / level / denied
+  rec: null, recOn: false, recFail: 0, recT: null, recWd: null,
+  stream: null, actx: null, an: null, buf: null, raf: 0, _levelPending: false, _lvlWd: null,
+  noise: 0.02, calib: 0, level: 0,
+  // 短窗爆发检测器状态（抗 BGM 漏声）：记录「高出噪声底 ≥DB_HI 分贝」的时间点，
+  // 滑动窗口内攒够 NEED 个即视为一声喊招（容忍字与字之间的气口间隙）。
+  _hiT: [], _last: 0, lastFire: 0, lastText: '',
+  // 可调参数
+  DB_HI: 7,          // 高于噪声底多少分贝才算「说话候选」（音乐漏声通常远低于此）
+  WIN: 900,          // 滑动窗口毫秒
+  NEED: 12,          // 窗口内需攒够的说话候选帧数（≈150~250ms 的说话能量，容气口）
+  FLOOR_ATTACK: 0.015, FLOOR_RELEASE: 0.06,
+
+  init(){
+    this.SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    try{ if(localStorage.getItem('gomoku_voice') === '0') this.on = false; }catch(e){}
+    this.paint();
+  },
+  paint(){
+    const b = document.getElementById('btnVoice');
+    if(!b) return;
+    if(!this.on){ b.textContent = '🎤'; b.style.opacity = '.4'; b.title = '口呼喊招：已关闭（点击开启）'; }
+    else if(this.engine === 'asr'){ b.textContent = '🎤'; b.style.opacity = '1'; b.title = '口呼喊招：聆听中（语音识别）'; }
+    else if(this.engine === 'level'){ b.textContent = '🎤'; b.style.opacity = '1'; b.title = '口呼喊招：聆听中（声控）'; }
+    else if(this.engine === 'denied'){ b.textContent = '🎤'; b.style.opacity = '.4'; b.title = '麦克风不可用，请改用右侧输入框'; }
+    else { b.textContent = '🎤'; b.style.opacity = '.7'; b.title = '口呼喊招（点击开启／关闭）'; }
+  },
+  meter(v){
+    const m = document.getElementById('micLevel');
+    if(!m) return;
+    const i = m.querySelector('i');
+    if(i) i.style.width = Math.max(0, Math.min(100, Math.round(v * 100))) + '%';
+  },
+  canFire(){
+    if(!players || !players[current] || !players[current].char) return false;
+    if(mode !== 'play' || aiThinking) return false;
+    if(!canControl(current)) return false;
+    const me = players[current];
+    return !!me.skillReady && !(me.skillBlockedTurns > 0);
+  },
+
+  /* 首次用户手势后自动开启，此后无需再按任何按钮 */
+  arm(){
+    if(!this.on || this.armed) return;
+    this.armed = true;
+    // 默认走"离线声控"(level)：国内网络下 ASR 常连得上却听不到结果而卡死，
+    // 而本局每人只有一门绝学、语音也只出自己这招，只需"听出一嗓子"即可——
+    // 因此离线声控最可靠。识别(ASR)仅作声控完全起不来时的备胎。
+    const self = this;
+    if(!this.startLevel()){
+      if(this.SR) this.startRec(); else { this.engine='denied'; this.paint(); }
+      return;
+    }
+    // 看门狗：麦克风授权迟迟不落定（用户没点/挂起）则改走 ASR，避免一直等
+    clearTimeout(this._lvlWd);
+    this._lvlWd = setTimeout(()=>{
+      if(!self.on) return;
+      if(self.engine === 'denied' || (self._levelPending && !self.stream)){
+        if(self.SR){ self.stopLevel(); self.startRec(); }
+      }
+    }, 2200);
+  },
+  toggle(){
+    Sound.unlock();
+    this.on = !this.on;
+    try{ localStorage.setItem('gomoku_voice', this.on ? '1' : '0'); }catch(e){}
+    if(this.on){ this.armed = false; this.arm(); message('口呼喊招已开启，蓄满时喊招名即可出招'); }
+    else { this.disarm(); message('口呼喊招已关闭'); }
+    this.paint();
+  },
+  disarm(){
+    this.armed = false;
+    clearTimeout(this._lvlWd); this._levelPending = false;
+    this.stopRec();
+    this.stopLevel();
+    this.engine = 'off';
+    this.paint();
+    this.meter(0);
+  },
+
+  /* ---- 引擎一：语音识别 ---- */
+  startRec(){
+    const self = this;
+    if(this.recOn) return;          // 识别已在跑，别再开麦克风
+    if(!this.SR){ this.startLevel(); return; }
+    let rec;
+    try{ rec = new this.SR(); }catch(e){ this.startLevel(); return; }
+    try{
+      rec.lang = 'zh-CN';
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 3;
+    }catch(e){}
+    rec.onstart = ()=>{
+      self.recOn = true; self.engine = 'asr'; self.recFail = 0;
+      clearTimeout(self.recWd); self.paint();
+    };
+    rec.onresult = (ev)=>{
+      self.engine = 'asr'; self.recFail = 0; self.paint();
+      clearTimeout(self.recWd);
+      for(let i = ev.resultIndex; i < ev.results.length; i++){
+        const res = ev.results[i];
+        const n = Math.min((res && res.length) || 0, 3);
+        for(let a = 0; a < n; a++){
+          const txt = (res[a] && res[a].transcript) || '';
+          if(txt && self.tryText(txt)) return;
+        }
+      }
+    };
+    rec.onerror = (ev)=>{
+      const e = (ev && ev.error) || '';
+      if(e === 'not-allowed' || e === 'service-not-allowed' || e === 'permission-denied'){
+        self.recFail = 99; self.stopRec(); self.startLevel(); return;
+      }
+      if(e === 'network'){ self.recFail++; if(self.recFail >= 2){ self.recFail = 99; self.stopRec(); self.startLevel(); } return; }
+      if(e === 'no-speech' || e === 'aborted') return;
+      self.recFail++;
+    };
+    rec.onend = ()=>{
+      self.recOn = false;
+      // 累计失败过多 → 识别服务基本连不通，转声控兜底，避免"看似开启却永久停摆"
+      if(!self.on){ return; }
+      if(self.recFail >= 4){
+        self.recFail = 99; self.stopRec(); self.startLevel(); return;
+      }
+      clearTimeout(self.recT);
+      self.recT = setTimeout(()=>{ if(self.on) self.startRec(); }, self.recFail ? 700 : 300);
+    };
+    try{ rec.start(); }catch(e){ this.recFail = 99; this.startLevel(); return; }
+    this.rec = rec;
+    // 迟迟不 onstart ＝ 识别服务不通（国内常见），较快转声控
+    clearTimeout(this.recWd);
+    this.recWd = setTimeout(()=>{
+      if(self.on && !self.recOn && self.engine !== 'asr'){ self.recFail = 99; self.stopRec(); self.startLevel(); }
+    }, 2500);
+  },
+  stopRec(){
+    clearTimeout(this.recT); clearTimeout(this.recWd);
+    if(this.rec){
+      try{ this.rec.onstart = null; this.rec.onresult = null; this.rec.onerror = null; this.rec.onend = null; this.rec.stop(); }catch(e){}
+    }
+    this.rec = null; this.recOn = false;
+  },
+
+  /* ---- 引擎二：声压 / 音节 ----
+     返回布尔：能否启动（同步判断）。true = 已请求麦克风(异步就绪)；false = 完全无法启动。 */
+  startLevel(){
+    const self = this;
+    if(this.stream) return true;
+    let gUM = null;
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) gUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    else if(navigator.getUserMedia) gUM = navigator.getUserMedia.bind(navigator);
+    if(!gUM){ this.engine = 'denied'; this.paint(); return false; }
+    this._levelPending = true;
+    gUM({ audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:false } })
+      .then(function(st){
+        self._levelPending = false;
+        if(!self.on){ try{ st.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} return; }
+        self.stream = st;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC){ self.engine = 'denied'; self.paint(); return; }
+        self.actx = new AC();
+        try{ if(self.actx.state === 'suspended') self.actx.resume(); }catch(e){}
+        const src = self.actx.createMediaStreamSource(st);
+        const an = self.actx.createAnalyser();
+        an.fftSize = 1024; an.smoothingTimeConstant = 0.3;
+        src.connect(an);
+        self.an = an; self.buf = new Uint8Array(an.fftSize);
+        self.noise = 0.02; self.calib = 0; self._last = 0; self._hiT = [];
+        self.engine = 'level'; self.paint();
+        self.tick();
+      })
+      .catch(function(){ self._levelPending = false; self.engine = 'denied'; self.paint(); });
+    return true;
+  },
+  stopLevel(){
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf = 0; }
+    if(this.stream){ try{ this.stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} }
+    this.stream = null; this.an = null; this.buf = null;
+    if(this.actx){ try{ this.actx.close(); }catch(e){} this.actx = null; }
+    this.meter(0);
+  },
+  tick(){
+    const self = this;
+    this.raf = requestAnimationFrame(()=>self.tick());
+    const an = this.an, buf = this.buf;
+    if(!an || !buf) return;
+    try{ an.getByteTimeDomainData(buf); }catch(e){ return; }
+    let sum = 0;
+    for(let i=0;i<buf.length;i++){ const v = (buf[i]-128)/128; sum += v*v; }
+    const rms = Math.sqrt(sum / buf.length);
+    this.level = rms;
+    this.meter(Math.min(1, rms * 4));
+    const now = (window.performance && performance.now) ? performance.now() : Date.now();
+    const dt = this._last ? Math.min(120, now - this._last) : 16;
+    this._last = now;
+    if(document.hidden) return;
+
+    // ---- 起手约 0.5s 校准噪声底（取最小值，避开开始的杂音）----
+    if(this.calib < 30){
+      this.calib++;
+      if(this.calib === 1) this.noise = Math.max(rms, 0.003);
+      else this.noise = Math.min(this.noise, rms);
+      return;
+    }
+
+    // ---- 噪声底自适应（幅度域）：背景音乐从喇叭漏进麦克风会被吸收为"底"，
+    //      以免把它误判成喊话；真正的说话声远比这个底要高。----
+    // 快速回落安静（人一停嘴底就降），极慢跟随稳态漏声（音乐不至于把底抬太高太久）。
+    if(rms > this.noise) this.noise += (rms - this.noise) * this.FLOOR_ATTACK;
+    else                 this.noise += (rms - this.noise) * this.FLOOR_RELEASE;
+    this.noise = Math.max(0.004, Math.min(0.4, this.noise));
+
+    // ---- 短窗爆发检测：在高出底 ≥DB_HI 分贝才算一次"说话帧"；窗口内攒够 NEED 个即触发 ----
+    const hi = (rms >= this.noise * Math.pow(10, this.DB_HI / 20) + 1e-9);
+    if(hi) this._hiT.push(now);
+    const cutoff = now - this.WIN;
+    while(this._hiT.length && this._hiT[0] < cutoff) this._hiT.shift();
+
+    // 触发：窗口内说话帧够多，且过了冷却期，且确可出招
+    if(this._hiT.length >= this.NEED && now - this.lastFire > 1300 && this.canFire()){
+      this.lastFire = now;
+      this._hiT = [];
+      chantSkill(players[current].char.name, true);
+    }
+  },
+
+  /* 识别到文字：只对得上自己本门绝学才出招，其余一律静默 */
+  tryText(txt){
+    const s = String(txt || '').trim();
+    if(!s) return false;
+    const id = resolveSkillName(s);
+    if(!id) return false;
+    if(!this.canFire()) return false;
+    const me = players[current];
+    if(!me || !me.char || me.char.skill !== id) return false;
+    const now = Date.now();
+    if(now - this.lastFire < 1500 && this.lastText === s) return false;
+    this.lastFire = now; this.lastText = s;
+    const input = document.getElementById('chantInput');
+    if(input) input.value = s;
+    chantSkill(s, true);
+    return true;
+  }
+};
+
+function init(){
+  canvas = document.getElementById('board');
+  ctx = canvas.getContext('2d');
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = SIZE * dpr; canvas.height = SIZE * dpr;
+  canvas.style.width = SIZE + 'px'; canvas.style.height = SIZE + 'px';
+  ctx.scale(dpr, dpr);
+  canvas.addEventListener('click', onCanvasClick);
+  if(canvas.addEventListener) canvas.addEventListener('touchstart', (e)=>{ /* 防止移动端 300ms 延迟干扰，点击仍由 click 处理 */ }, {passive:true});
+  document.getElementById('btnSkill').onclick = function(){ Sound.unlock(); if(!aiThinking) activateSkill(); };
+  document.getElementById('btnCancel').onclick = cancelSkill;
+  document.getElementById('btnRestart').onclick = showModeSelector;
+  document.getElementById('btnSound').onclick = function(){
+    Sound.unlock();
+    Sound.setEnabled(!Sound.enabled);
+    this.textContent = Sound.enabled ? '🔊 音效' : '🔇 静音';
+  };
+  document.getElementById('btnMusic').onclick = function(){
+    Sound.unlock();
+    Sound.setBGM(!Sound._bgmOn);
+    this.textContent = Sound._bgmOn ? '🎵 音乐' : '🔇 无乐';
+    message(Sound._bgmOn ? '已开启背景音乐' : '已关闭背景音乐');
+  };
+  // 音量滑轨：背景音乐 / 音效
+  (function initVolSliders(){
+    const vBgm = document.getElementById('volBgm');
+    const vSfx = document.getElementById('volSfx');
+    // 以当前 Sound 字段为基准给滑轨一个初始显示位（首次手势后 _loadVol 会再校正）
+    const bgmInit = Math.round(Sound._bgmVol * 100);
+    const sfxInit = Math.round(Sound._sfxVol * 100);
+    if(vBgm){
+      vBgm.value = bgmInit;
+      vBgm.addEventListener('input', ()=>{ Sound.setBGMVol(vBgm.value / 100); });
+    }
+    if(vSfx){
+      vSfx.value = sfxInit;
+      vSfx.addEventListener('input', ()=>{ Sound.setSFXVol(vSfx.value / 100); });
+    }
+    // 首次手势后 _loadVol 可能已更新 Sound 字段，据此校正滑轨显示
+    const sync = ()=>{ if(vBgm) vBgm.value = Math.round(Sound._bgmVol * 100); if(vSfx) vSfx.value = Math.round(Sound._sfxVol * 100); };
+    document.addEventListener('pointerdown', sync, {passive:true, once:true});
+    document.addEventListener('touchstart', sync, {passive:true, once:true});
+  })();
+  // 喊招
+  const chantInput = document.getElementById('chantInput');
+  const btnChant = document.getElementById('btnChant');
+  const btnVoice = document.getElementById('btnVoice');
+  if(chantInput){
+    chantInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ chantSkill(chantInput.value); }
+    });
+  }
+  if(btnChant){ btnChant.onclick = ()=>chantSkill(chantInput ? chantInput.value : ''); }
+  if(btnVoice){ btnVoice.onclick = ()=>Voice.toggle(); }
+  // 点击面板上的「绝学·XX」也可直接出招（必定命中本门绝学）
+  const playersBox = document.getElementById('players');
+  if(playersBox){
+    playersBox.addEventListener('click', (e)=>{
+      const t = e.target && e.target.closest ? e.target.closest('[data-chant]') : null;
+      if(t && t.getAttribute('data-chant')) chantSkill(t.getAttribute('data-chant'));
+    });
+  }
+  // 任何一次交互都同时完成：音频授权 + 口呼喊招自动开启（此后不必再按任何按钮）
+  const unlock = ()=>{ Sound.unlock(); Voice.arm(); };
+  ['click','touchstart','touchend','pointerdown','keydown','mousedown'].forEach((ev)=>{
+    document.addEventListener(ev, unlock, {passive:true});
+  });
+  // 切回前台 / 网络恢复 / 音频路由变化时续播（移动端常被系统打断）
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) Sound._bgmTick(); });
+  window.addEventListener('focus', ()=>Sound._bgmTick());
+  window.addEventListener('pageshow', ()=>Sound._bgmTick());
+  FX.init();
+  Voice.init();
+  initBoardZoom();
+  loop();
+  showModeSelector();
+}
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
