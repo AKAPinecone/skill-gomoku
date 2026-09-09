@@ -436,7 +436,18 @@
     .side + .side::before{ display:none; }
     .side{ flex:1 1 100%; max-width:none; }
   }
+  /* ---- 异地联机 ---- */
+  .roombox{ background:var(--paper-dark); border:1px solid var(--ink-soft); border-radius:4px; padding:14px 16px; margin:16px auto 6px; max-width:540px; text-align:left; }
+  .roomlabel{ font-size:12px; color:var(--ink-soft); letter-spacing:2px; margin:10px 0 5px; }
+  .roomlabel:first-child{ margin-top:0; }
+  .roomcode{ font-size:30px; font-weight:700; letter-spacing:9px; color:var(--cinnabar); font-family:"STKaiti",serif; text-align:center; padding:2px 0 4px; }
+  .roomlink{ font-size:12.5px; color:var(--ink-soft); word-break:break-all; background:var(--paper-light); border:1px dashed var(--ink-soft); border-radius:3px; padding:9px 10px; line-height:1.7; }
+  .netstate{ margin:12px 0 2px; font-size:14.5px; color:var(--ink); letter-spacing:1px; }
+  .tip{ font-size:12px; color:var(--ink-soft); margin-top:14px; letter-spacing:1px; }
+  .joinrow{ display:flex; gap:8px; margin-top:2px; }
+  .joinrow input{ flex:1; padding:9px 11px; border:1px solid var(--ink-soft); border-radius:3px; background:var(--paper-light); color:var(--ink); font-size:17px; letter-spacing:4px; text-transform:uppercase; min-width:0; }
 </style>
+<script src="vendor/mqtt.min.js"></script>
 </head>
 <body data-page-node-id="GGqRJCvAF7UHKYGX0W4Qjm">
 <header data-page-node-id="TKNEW2eyOrP45pE7LakN6o">
@@ -1131,8 +1142,143 @@ let skillFxUntil = 0;      // 技能特效结束时刻（连五动画要等它�
 function other(p){ return p === P1 ? P2 : P1; }
 function inB(x, y){ return x >= 0 && x < N && y >= 0 && y < N; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function canControl(pid){ return gameMode === 'pvp' || pid === P1; }
+function canControl(pid){
+  if(gameMode === 'online') return Net.on ? (pid === Net.seat) : true;  // 联机：只控自己这方
+  return gameMode === 'pvp' || pid === P1;
+}
 function drawCards(){ return shuffle(CHARACTERS.slice()).slice(0,3); }
+
+/* ===================== 异地联机（MQTT over WebSocket） =====================
+   借公共 MQTT broker 作实时通道：不用注册、不用自建服务器。
+   房间用 6 位随机码隔离 —— 把带 ?room=XXXX 的链接发给朋友，他点开即进同一局。
+
+   同步策略：只同步"意图事件"（落子／出招／择点／收招／就绪／重开），
+   双方各跑同一套确定性规则，棋盘自然一致。游戏里的随机数只用于
+   视觉特效与 AI 决策、不影响棋局，因此无需权威端仲裁。            */
+const NET_BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://test.mosquitto.org:8081/mqtt'
+];
+const Net = {
+  cli:null, room:'', seat:0,          // seat：0=未定 1=黑（先手） 2=白
+  on:false, connected:false, applying:false,
+  myId:'', peerId:'', peerSeat:0, peer:false, lastPeer:0,
+  myChar:null, peerChar:null, myReady:false, peerReady:false,
+  hbT:0, bi:0,
+
+  /* ---------- 基础 ---------- */
+  rid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); },
+  genRoom(){
+    const s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r = '';
+    for(let i=0;i<6;i++) r += s.charAt(Math.floor(Math.random()*s.length));
+    return r;
+  },
+  roomFromUrl(){
+    const m = location.search.match(/[?&]room=([A-Za-z0-9]{4,12})/);
+    return m ? m[1].toUpperCase() : '';
+  },
+  shareLink(){ return location.origin + location.pathname + '?room=' + this.room; },
+  topic(){ return 'skillgomoku/v1/' + this.room; },
+
+  /* ---------- 连接 ---------- */
+  join(room){
+    if(!room) return;
+    this.room = room; this.on = true; this.seat = 0;
+    this.myId = this.rid(); this.myReady = false; this.peerReady = false;
+    this.peerChar = null; this.peer = false; this.peerSeat = 0; this.lastPeer = 0;
+    this.onState && this.onState();
+    if(typeof mqtt === 'undefined'){
+      this.fail('实时通信组件未加载，请刷新页面重试');
+      return;
+    }
+    let cli = null;
+    try{
+      cli = mqtt.connect(NET_BROKERS[this.bi], {
+        clientId: 'sg_' + this.myId, clean:true, keepalive:25,
+        reconnectPeriod: 2000, connectTimeout: 9000
+      });
+    }catch(e){ this.fail('无法建立连接：' + e.message); return; }
+    this.cli = cli;
+    cli.on('connect', ()=>{
+      this.connected = true;
+      cli.subscribe(this.topic(), {qos:0});
+      this.beat();
+      clearInterval(this.hbT);
+      this.hbT = setInterval(()=>this.beat(), 1500);
+      // 先到先得：900ms 内没听到对手心跳，就自己坐黑棋（先手）
+      setTimeout(()=>{ if(this.on && !this.seat) this.setSeat(1); }, 900);
+      this.onState && this.onState();
+    });
+    cli.on('message', (t, buf)=>this.recv(buf));
+    cli.on('error', ()=>{ this.connected = false; this.onState && this.onState(); });
+    cli.on('close', ()=>{ this.connected = false; this.peer = false; this.onState && this.onState(); });
+  },
+  fail(msg){
+    this.on = false; this.connected = false;
+    this.onState && this.onState();
+    try{ message('联机失败：' + msg); }catch(e){}
+  },
+  leave(){
+    clearInterval(this.hbT); this.hbT = 0;
+    if(this.cli){ try{ this.cli.end(true); }catch(e){} this.cli = null; }
+    this.on = false; this.connected = false; this.peer = false;
+    this.seat = 0; this.room = '';
+  },
+  setSeat(s){
+    if(this.seat === s) return;
+    this.seat = s;
+    this.beat();
+    this.onSeat && this.onSeat();
+  },
+  beat(){
+    if(!this.cli || !this.connected) return;
+    this.send({t:'hb', seat:this.seat, char:this.myChar ? this.myChar.id : null, rd:this.myReady});
+    if(this.lastPeer && Date.now() - this.lastPeer > 6000 && this.peer){
+      this.peer = false; this.onPeerGone && this.onPeerGone();
+    }
+  },
+  send(o){
+    if(!this.cli || !this.connected || !this.room) return;
+    o.id = this.myId;
+    try{ this.cli.publish(this.topic(), JSON.stringify(o), {qos:0}); }catch(e){}
+  },
+
+  /* ---------- 收包 ---------- */
+  recv(buf){
+    let m = null;
+    try{ m = JSON.parse(String(buf)); }catch(e){ return; }
+    if(!m || !m.id || m.id === this.myId) return;
+    this.peerId = m.id; this.lastPeer = Date.now();
+    if(!this.peer){ this.peer = true; this.onPeerIn && this.onPeerIn(); }
+    if(m.t === 'hb'){
+      if(m.seat){
+        this.peerSeat = m.seat;
+        if(!this.seat) this.setSeat(m.seat === 1 ? 2 : 1);
+        else if(m.seat === this.seat && this.myId > m.id) this.setSeat(3 - this.seat); // 撞座：id 大者让位
+      }
+      if(m.char) this.peerChar = m.char;
+      if(m.rd && !this.peerReady){ this.peerReady = true; this.onPeerReady && this.onPeerReady(); }
+      this.onState && this.onState();
+      return;
+    }
+    if(!this.seat || this.applying) return;
+    this.applying = true;
+    try{ this.handle(m); }
+    catch(e){ try{ console.warn('[net] 远端事件处理失败', e, m); }catch(_){} }
+    finally{ this.applying = false; }
+  },
+  handle(m){
+    switch(m.t){
+      case 'rd': this.peerChar = m.char; this.peerReady = true;
+                 this.onPeerReady && this.onPeerReady(); break;
+      case 'mv': if(typeof placeStone === 'function') placeStone(m.x, m.y); break;
+      case 'sk': if(typeof activateSkill === 'function') activateSkill(true); break;
+      case 'pk': if(typeof handleSkillClick === 'function') handleSkillClick(m.x, m.y); break;
+      case 'cn': if(typeof cancelSkill === 'function') cancelSkill(); break;
+      case 'rs': if(typeof netRestart === 'function') netRestart(); break;
+    }
+  }
+};
 
 /* ===================== 连线 / 锁链 ===================== */
 // 锁住的子仍按原色计入连线；但判断「新五连」时，一段五连中的任意两枚锁子不得 8-相邻
@@ -1234,16 +1380,183 @@ function showModeSelector(){
     '<div class="mode-cards">' +
       '<div class="mode-card" data-mode="pvp"><div class="icon">👥</div><div class="mtitle">江湖双侠</div><div class="mdesc">两位玩家同屏轮流出招</div></div>' +
       '<div class="mode-card" data-mode="pve"><div class="icon">🤖</div><div class="mtitle">人机论剑</div><div class="mdesc">与电脑 AI 对弈，AI 亦会使技</div></div>' +
+      '<div class="mode-card" data-mode="online"><div class="icon">🌐</div><div class="mtitle">异地论剑</div><div class="mdesc">发链接邀友，隔空对弈同一局</div></div>' +
     '</div>'
   );
   const cards = document.querySelectorAll('.mode-card');
   for(let i=0;i<cards.length;i++){
     cards[i].onclick = function(){
-      gameMode = this.getAttribute('data-mode');
+      const m = this.getAttribute('data-mode');
+      if(m === 'online'){ hideOverlay(); enterOnline(); return; }
+      gameMode = m;
       hideOverlay();
       showCardSelection();
     };
   }
+}
+
+/* ===================== 联机：建房 / 加入 / 择技 ===================== */
+function enterOnline(){
+  gameMode = 'online';
+  const r = Net.roomFromUrl();
+  if(r) onlineConnecting(r);      // 朋友点开的邀请链接：直接进房
+  else  showCreateRoom();         // 自己建房
+}
+
+function showCreateRoom(){
+  const code = Net.genRoom();
+  const link = location.origin + location.pathname + '?room=' + code;
+  showOverlay(
+    '<h2>异地论剑 · 建房</h2>' +
+    '<p>建房后把下面的链接发给朋友，他点开即可与你同局对弈（不必同处一地）</p>' +
+    '<div class="roombox">' +
+      '<div class="roomlabel">房间号</div>' +
+      '<div class="roomcode" id="roomCode">' + code + '</div>' +
+      '<div class="roomlabel">邀请链接</div>' +
+      '<div class="roomlink" id="roomLink">' + link + '</div>' +
+    '</div>' +
+    '<div class="actions"><button id="btnCopy" class="ghost">复制链接</button>' +
+    '<button id="btnEnter" class="primary">进入房间等待</button></div>' +
+    '<div class="roomlabel">已有房间号？直接加入</div>' +
+    '<div class="joinrow"><input id="joinCode" maxlength="10" placeholder="如 AB3K9M" autocomplete="off"><button id="btnJoin">加入</button></div>' +
+    '<p class="tip">房间号为随机 6 位，外人无从猜得</p>'
+  );
+  try{ document.getElementById('btnCopy').onclick = function(){
+    copyText(link, this);
+  }; }catch(e){}
+  document.getElementById('btnEnter').onclick = function(){
+    try{ history.replaceState(null, '', location.pathname + '?room=' + code); }catch(e){}
+    onlineConnecting(code);
+  };
+  document.getElementById('btnJoin').onclick = function(){
+    const v = (document.getElementById('joinCode').value || '').trim().toUpperCase();
+    if(!v){ alert('请输入朋友的房间号'); return; }
+    try{ history.replaceState(null, '', location.pathname + '?room=' + v); }catch(e){}
+    onlineConnecting(v);
+  };
+}
+
+function copyText(t, btn){
+  const done = ()=>{ if(btn){ const old = btn.textContent; btn.textContent = '已复制 ✓'; setTimeout(()=>{ btn.textContent = old; }, 1600); } };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, ()=>fallback());
+    } else fallback();
+  }catch(e){ fallback(); }
+  function fallback(){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta); done();
+    }catch(e){ alert('复制失败，请手动选中链接复制'); }
+  }
+}
+
+function onlineConnecting(room){
+  const link = location.origin + location.pathname + '?room=' + room;
+  showOverlay(
+    '<h2>异地论剑</h2>' +
+    '<div class="netstate" id="netState">正在接入…</div>' +
+    '<div class="roombox">' +
+      '<div class="roomlabel">房间号</div>' +
+      '<div class="roomcode">' + room + '</div>' +
+      '<div class="roomlabel">邀请链接（发给朋友）</div>' +
+      '<div class="roomlink" id="roomLink">' + link + '</div>' +
+    '</div>' +
+    '<div class="actions"><button id="btnCopy2" class="ghost">复制链接</button>' +
+    '<button id="btnQuit" class="ghost">退出联机</button></div>' +
+    '<p class="tip">双方都进来后，各择一门绝学即开局</p>'
+  );
+  try{ document.getElementById('btnCopy2').onclick = function(){ copyText(link, this); }; }catch(e){}
+  try{ document.getElementById('btnQuit').onclick = function(){ Net.leave(); gameMode = 'pvp'; location.search = ''; }; }catch(e){}
+
+  Net.onState = paintNetState;
+  Net.onSeat  = function(){ paintNetState(); if(Net.peer) showOnlinePick(); };
+  Net.onPeerIn = function(){ paintNetState(); if(Net.seat) showOnlinePick(); };
+  Net.onPeerReady = function(){ paintPickState(); maybeStartOnlineMatch(); };
+  Net.onPeerGone = function(){
+    paintNetState();
+    try{ message('对手已离线'); }catch(e){}
+  };
+  Net.join(room);
+}
+
+function paintNetState(){
+  const el = document.getElementById('netState');
+  if(!el) return;
+  let s = '';
+  if(!Net.connected) s = '正在接入服务器…';
+  else if(!Net.seat)  s = '已接入，正在确定先后手…';
+  else if(!Net.peer) s = '你执' + (Net.seat === 1 ? '黑（先手）' : '白（后手）') + ' —— 等待对手加入…';
+  else s = '你执' + (Net.seat === 1 ? '黑（先手）' : '白（后手）') + ' —— 对手已到';
+  el.innerHTML = '<b>' + s + '</b>';
+}
+
+let _onlinePickShown = false;
+function showOnlinePick(){
+  if(_onlinePickShown) return;
+  _onlinePickShown = true;
+  const cards = drawCards();
+  let html = '';
+  for(let i=0;i<cards.length;i++){
+    const c = cards[i];
+    html += '<div class="card" data-my="'+c.id+'" style="--c:'+c.color+'"><div class="cn">'+c.name+'</div><div class="cd">'+c.desc+'</div></div>';
+  }
+  showOverlay(
+    '<h2>择定绝学</h2>' +
+    '<p>你执<b>' + (Net.seat === 1 ? '黑 · 先手' : '白 · 后手') + '</b>，自三门绝学中择一</p>' +
+    '<div class="sides"><div class="side"><h3><span class="dot ' + (Net.seat===1?'b':'w') + '"></span>你的绝学</h3>' +
+      '<div class="cards">' + html + '</div></div></div>' +
+    '<div class="actions"><button id="btnReady" class="primary">择定，等待对手</button></div>' +
+    '<div class="netstate" id="pickState"></div>'
+  );
+  let pick = null;
+  const els = document.querySelectorAll('[data-my]');
+  for(let k=0;k<els.length;k++){
+    els[k].onclick = function(){
+      const all = document.querySelectorAll('[data-my]');
+      for(let m=0;m<all.length;m++) all[m].classList.remove('sel');
+      this.classList.add('sel');
+      pick = CHARACTERS.find(c=>c.id===this.getAttribute('data-my'));
+    };
+  }
+  document.getElementById('btnReady').onclick = function(){
+    if(!pick){ alert('请先择一令'); return; }
+    Net.myChar = pick; Net.myReady = true;
+    Net.send({t:'rd', char: pick.id});
+    Sound.unlock();
+    paintPickState();
+    maybeStartOnlineMatch();
+  };
+  paintPickState();
+}
+
+function paintPickState(){
+  const el = document.getElementById('pickState');
+  if(!el) return;
+  const me = Net.myReady ? '你已择定' : '你尚未择定';
+  const pe = Net.peerReady ? '对手已择定' : '等待对手择定…';
+  el.innerHTML = me + ' · ' + pe;
+}
+
+function maybeStartOnlineMatch(){
+  paintPickState();
+  if(!(Net.myReady && Net.peerReady)) return;
+  const a = CHARACTERS.find(c=>c.id === Net.myChar.id);
+  const b = CHARACTERS.find(c=>c.id === Net.peerChar);
+  if(!a || !b) return;
+  const p1 = (Net.seat === 1) ? a : b;
+  const p2 = (Net.seat === 1) ? b : a;
+  hideOverlay();
+  Sound.unlock();
+  startMatch(p1, p2, true);      // 先到者（seat 1）执黑先手，双方一致
+}
+
+function netRestart(){
+  _onlinePickShown = false;
+  Net.myReady = false; Net.peerReady = false; Net.myChar = null; Net.peerChar = null;
+  if(gameMode === 'online' && Net.on){ showOnlinePick(); }
 }
 
 function showCardSelection(){
@@ -1311,9 +1624,9 @@ function showCardSelection(){
   };
 }
 
-function startMatch(p1Char, p2Char){
-  // 随机执黑执白
-  const p1Dark = Math.random() < 0.5;
+function startMatch(p1Char, p2Char, forceP1Dark){
+  // 随机执黑执白；联机时由调用方指定（先到者执黑先手），保证双方一致
+  const p1Dark = (forceP1Dark === undefined || forceP1Dark === null) ? (Math.random() < 0.5) : !!forceP1Dark;
   players = {
     1: { name: '技能五', char:p1Char,charge:0, maxCharge:100, lives:3, skipTurn:false, skillReady:false, skillBlockedTurns:0, stoneColor: p1Dark ? 'dark' : 'light' },
     2: { name: '子棋', char:p2Char, charge:0, maxCharge:100, lives:3, skipTurn:false, skillReady:false, skillBlockedTurns:0, stoneColor: p1Dark ? 'light' : 'dark' }
@@ -1349,6 +1662,7 @@ function placeStone(x, y){
   const chargeBefore = players[color].charge;
   board[y][x] = color;
   history.push({ x:x, y:y, color:color, chargeBefore:chargeBefore });
+  if(gameMode === 'online' && Net.on && !Net.applying) Net.send({t:'mv', x:x, y:y});
 
   // 先判断是否连成五子（得胜）：若成五，只加少量底数、不加连线的巨额奖励，
   // 因为成五已夺一命，不应再大量蓄气。
@@ -1516,7 +1830,11 @@ function matchOver(winner){
     '<p>绝学：' + players[winner].char.name + '（' + players[winner].char.desc + '）</p>' +
     '<div class="actions"><button class="primary" id="btnAgain">再战</button><button id="btnChange">易式</button></div>'
   );
-  document.getElementById('btnAgain').onclick = function(){ hideOverlay(); showCardSelection(); };
+  document.getElementById('btnAgain').onclick = function(){
+    hideOverlay();
+    if(gameMode === 'online' && Net.on){ netRestart(); Net.send({t:'rs'}); }
+    else showCardSelection();
+  };
   document.getElementById('btnChange').onclick = function(){ hideOverlay(); showModeSelector(); };
 }
 
@@ -1533,6 +1851,7 @@ function activateSkill(fromAI){
   // 一经施展即耗去本回合蓄满之气（无论是否成五、是否取消，蓄力条均清零）
   p.charge = 0; p.skillReady = false;
   render();
+  if(gameMode === 'online' && Net.on && !Net.applying) Net.send({t:'sk'});
 
   // 无需择目标的绝学：施展即触发音效与特效
   if(pendingSkill === 'jingru'){
@@ -1627,6 +1946,7 @@ function finishSkill(advance){
 
 function cancelSkill(){
   if(mode === 'skill'){
+    if(gameMode === 'online' && Net.on && !Net.applying) Net.send({t:'cn'});
     pendingSkill = null; mode = 'play'; skillStep = 1; selectedForSkill = null;
     message('已收招，请落子');
     render();
@@ -1641,6 +1961,7 @@ function checkAndRegisterFive(x, y, color){
 }
 
 function handleSkillClick(x, y){
+  if(gameMode === 'online' && Net.on && !Net.applying) Net.send({t:'pk', x:x, y:y});
   const skill = pendingSkill, opp = other(current);
   const sfx = (n)=>{ try{ Sound[n](); }catch(e){} };
   if(skill === 'feisha'){
@@ -2918,7 +3239,10 @@ function init(){
   if(canvas.addEventListener) canvas.addEventListener('touchstart', (e)=>{ /* 防止移动端 300ms 延迟干扰，点击仍由 click 处理 */ }, {passive:true});
   document.getElementById('btnSkill').onclick = function(){ Sound.unlock(); if(!aiThinking) activateSkill(); };
   document.getElementById('btnCancel').onclick = cancelSkill;
-  document.getElementById('btnRestart').onclick = showModeSelector;
+  document.getElementById('btnRestart').onclick = function(){
+    if(Net && Net.on){ Net.leave(); _onlinePickShown = false; }
+    showModeSelector();
+  };
   document.getElementById('btnSound').onclick = function(){
     Sound.unlock();
     Sound.setEnabled(!Sound.enabled);
@@ -2982,7 +3306,9 @@ function init(){
   Voice.init();
   initBoardZoom();
   loop();
-  showModeSelector();
+  // 朋友点开的是带 ?room=XXXX 的邀请链接：直接入局，不必再选模式
+  const _r = Net.roomFromUrl();
+  if(_r) enterOnline(); else showModeSelector();
 }
 window.addEventListener('DOMContentLoaded', init);
 </script>
