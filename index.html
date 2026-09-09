@@ -1272,7 +1272,14 @@ const Net = {
       case 'rd': this.peerChar = m.char; this.peerReady = true;
                  this.onPeerReady && this.onPeerReady(); break;
       case 'mv': if(typeof placeStone === 'function') placeStone(m.x, m.y); break;
-      case 'sk': if(typeof activateSkill === 'function') activateSkill(true); break;
+      case 'sk': {
+        // 对手已施展绝学。若本地蓄气因网络抖动与对手略有偏差（skillReady 为假），
+        // 先对齐为「满」再走同一套流程，否则 activateSkill 会静默丢弃这一着。
+        const pp = players[current];
+        if(pp && mode === 'play' && !pp.skillReady){ pp.charge = 100; pp.skillReady = true; }
+        if(typeof activateSkill === 'function') activateSkill(true);
+        break;
+      }
       case 'pk': if(typeof handleSkillClick === 'function') handleSkillClick(m.x, m.y); break;
       case 'cn': if(typeof cancelSkill === 'function') cancelSkill(); break;
       case 'rs': if(typeof netRestart === 'function') netRestart(); break;
