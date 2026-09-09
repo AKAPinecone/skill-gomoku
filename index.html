@@ -97,6 +97,8 @@
     flex:1; background:var(--paper-light);
     border:1.5px solid var(--ink-soft); border-radius:4px;
     padding:12px 14px;
+    /* 预留一行高度：状态文字增减时框体不再忽大忽小 */
+    min-height:170px;
     box-shadow:0 4px 10px var(--shadow), inset 0 0 0 1px rgba(255,255,255,.4);
     position:relative;
     transition:box-shadow .2s, border-color .2s;
@@ -157,9 +159,20 @@
       filter:brightness(1.25) saturate(1.3);
     }
   }
-  .chargestat{font-size:11px; color:var(--ink-soft); margin-top:5px; letter-spacing:2px;}
+  /* 单行 ellipsis：蓄气中 / 绝学已备 / 绝学被封 三种文案长短不一，
+     若允许换行会改变面板高度，这里锁死为一行 */
+  .chargestat{font-size:11px; color:var(--ink-soft); margin-top:5px; letter-spacing:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .chargestat.ready{ color:#A87816; font-weight:800; text-shadow:0 0 5px rgba(255,200,60,.9); }
   .lives{font-size:17px; color:var(--cinnabar); letter-spacing:4px; margin-top:7px; font-weight:bold;}
+  /* 联机回合倒计时 */
+  #turnClock{display:none; text-align:center; margin-top:6px; font-size:12px; letter-spacing:2px; color:var(--ink-soft);}
+  #turnClock .tcNum{display:inline-block; font-size:21px; font-weight:800; color:var(--cinnabar); margin:0 5px; font-variant-numeric:tabular-nums; min-width:1.2em;}
+  #turnClock .tcNum.urgent{animation:tcPulse .9s ease-in-out infinite;}
+  @keyframes tcPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.22);} }
+  /* 建房界面：限时开关 */
+  .timeropt{margin:12px 0 2px; font-size:13px; letter-spacing:1px; color:var(--ink); text-align:left;}
+  .timeropt label{cursor:pointer; display:inline-flex; align-items:center; gap:7px;}
+  .timeropt input{width:15px; height:15px; cursor:pointer;}
   .panel.freezing{ border-color:#8fd6ff; box-shadow:0 0 18px 2px rgba(140,220,255,.8), inset 0 0 14px rgba(160,225,255,.55); }
   .panel.freezing::after{
     content:""; position:absolute; inset:-3px; border-radius:6px; pointer-events:none;
@@ -490,6 +503,7 @@
 </div></div></div>
 
 <div id="status" data-page-node-id="rdXkheKylO3Zne9q8VMGwK"></div>
+<div id="turnClock"></div>
 
 <details class="rules" data-page-node-id="LKoBBrswgFXs5pPe8iYdWY">
   <summary data-page-node-id="RQKVcIOrUhbLcS7DCiXAaX">武学要诀</summary>
@@ -951,7 +965,7 @@ const Sound = {
       });
       a.addEventListener('playing', ()=>{ if(!self._bgmIntroPlaying) self._bgmPlaying = true; });
       a.addEventListener('pause',   ()=>{ if(self.enabled && self._bgmOn && !self._bgmIntroPlaying && !a.ended) self._bgmTick(); });
-      a.addEventListener('ended',   ()=>{ self._bgmPlaying = false; self._nextLoop(); });
+      a.addEventListener('ended',   ()=>{ self._bgmPlaying = false; self._gapNext(); });   // 间隔 2 秒再接下一首
       a.addEventListener('error',   ()=>{ self._bgmPlaying = false; self._bgmErr(); });
       this._bgmList.push(a);
     });
@@ -962,7 +976,7 @@ const Sound = {
     });
     intro.addEventListener('playing', ()=>{ self._bgmPlaying = true; self._bgmIntroPlaying = true; });
     intro.addEventListener('pause',   ()=>{ if(self.enabled && self._bgmOn && self._bgmIntroPlaying && !intro.ended) self._bgmTick(); });
-    intro.addEventListener('ended',   ()=>{ self._bgmIntroPlaying = false; self._bgmPlaying = false; self._nextLoop(); });
+    intro.addEventListener('ended',   ()=>{ self._bgmIntroPlaying = false; self._bgmPlaying = false; self._gapNext(); });
     intro.addEventListener('error',   ()=>{ self._bgmIntroPlaying = false; self._bgmPlaying = false; self._bgmErr(); self._nextLoop(); });
     this._bgmIntro = intro;
     this._bgmTick();
@@ -977,6 +991,7 @@ const Sound = {
   /* 每局开始：先静默循环曲，再从头播开场曲；开场曲完整播完才接循环曲 */
   startMatchBGM(){
     if(!this.enabled || !this._bgmOn) return;
+    clearTimeout(this._bgmGapT); this._bgmGapT = 0;   // 清掉上一局可能残留的接曲定时
     this.initBGM();
     const a = this._bgmIntro;
     if(!a || a.error){ this._nextLoop(); return; }
@@ -1015,6 +1030,12 @@ const Sound = {
   _stopLoop(){
     this._bgmList.forEach((a)=>{ try{ a.pause(); }catch(e){} });
   },
+  /* 两曲之间留一段静默（默认 2 秒）再接下一首，避免首尾相接过于紧凑 */
+  _gapNext(delay){
+    clearTimeout(this._bgmGapT);
+    const d = (typeof delay === 'number') ? delay : 2000;
+    this._bgmGapT = setTimeout(()=>{ this._bgmGapT = 0; this._nextLoop(); }, d);
+  },
   /* 循环曲：两首轮流，播完一首接下一首 */
   _nextLoop(){
     if(!this.enabled || !this._bgmOn) return false;
@@ -1032,6 +1053,7 @@ const Sound = {
       this._bgmCur = a;
       try{ a.volume = this._bgmVol; }catch(e){}
       if(a.readyState === 0){ try{ a.load(); }catch(e){} }
+      try{ if(a.readyState >= 1) a.currentTime = 0; }catch(e){}   // 每一首都从头起播
       let p = null, threw = false;
       try{ p = a.play(); }catch(e){ threw = true; }
       if(!threw && p && p.then) p.then(()=>{ this._bgmPlaying = true; }).catch(()=>{ this._bgmPlaying = false; });
@@ -1071,6 +1093,7 @@ const Sound = {
     this._bgmIntroPlaying = false;
     this._bgmPlaying = false;
     clearTimeout(this._bgmWd);
+    clearTimeout(this._bgmGapT); this._bgmGapT = 0;
   },
   setEnabled(on){
     this.enabled = on;
@@ -1165,24 +1188,27 @@ const Net = {
   myId:'', peerId:'', peerSeat:0, peer:false, lastPeer:0,
   myChar:null, peerChar:null, myReady:false, peerReady:false,
   hbT:0, bi:0,
+  timerOn:true,   // 本房是否启用回合限时（由房主设定，随心跳同步给对手）
+  isHost:false,   // 是否为建房者（建房者坐黑先手）
 
   /* ---------- 基础 ---------- */
   rid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); },
   genRoom(){
-    const s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r = '';
-    for(let i=0;i<6;i++) r += s.charAt(Math.floor(Math.random()*s.length));
-    return r;
+    let r = '';
+    for(let i=0;i<4;i++) r += String(Math.floor(Math.random()*10));
+    return r;   // 4 位纯数字，口述/输入都方便
   },
   roomFromUrl(){
-    const m = location.search.match(/[?&]room=([A-Za-z0-9]{4,12})/);
-    return m ? m[1].toUpperCase() : '';
+    const m = location.search.match(/[?&]room=(\d{4})\b/);
+    return m ? m[1] : '';
   },
   shareLink(){ return location.origin + location.pathname + '?room=' + this.room; },
   topic(){ return 'skillgomoku/v1/' + this.room; },
 
   /* ---------- 连接 ---------- */
-  join(room){
+  join(room, isHost){
     if(!room) return;
+    this.isHost = !!isHost;
     this.room = room; this.on = true; this.seat = 0;
     this.myId = this.rid(); this.myReady = false; this.peerReady = false;
     this.peerChar = null; this.peer = false; this.peerSeat = 0; this.lastPeer = 0;
@@ -1206,7 +1232,11 @@ const Net = {
       clearInterval(this.hbT);
       this.hbT = setInterval(()=>this.beat(), 1500);
       // 先到先得：900ms 内没听到对手心跳，就自己坐黑棋（先手）
-      setTimeout(()=>{ if(this.on && !this.seat) this.setSeat(1); }, 900);
+      // 建房者直接坐黑先手；加入者稍候，通常会在 900ms 内收到房主心跳而自动坐到对面。
+      // 这样座位不再取决于谁的手速快，建房者恒为先手。
+      if(this.isHost) this.setSeat(1);
+      // 须大于心跳间隔(1500ms)，否则还没收到房主心跳就自行占座，容易撞座
+      else setTimeout(()=>{ if(this.on && !this.seat) this.setSeat(1); }, 2200);
       this.onState && this.onState();
     });
     cli.on('message', (t, buf)=>this.recv(buf));
@@ -1232,7 +1262,7 @@ const Net = {
   },
   beat(){
     if(!this.cli || !this.connected) return;
-    this.send({t:'hb', seat:this.seat, char:this.myChar ? this.myChar.id : null, rd:this.myReady});
+    this.send({t:'hb', seat:this.seat, char:this.myChar ? this.myChar.id : null, rd:this.myReady, tm:this.timerOn ? 1 : 0, h:this.isHost ? 1 : 0});
     if(this.lastPeer && Date.now() - this.lastPeer > 6000 && this.peer){
       this.peer = false; this.onPeerGone && this.onPeerGone();
     }
@@ -1254,9 +1284,13 @@ const Net = {
       if(m.seat){
         this.peerSeat = m.seat;
         if(!this.seat) this.setSeat(m.seat === 1 ? 2 : 1);
-        else if(m.seat === this.seat && this.myId > m.id) this.setSeat(3 - this.seat); // 撞座：id 大者让位
+        /* 撞座：房主不让位；对方是房主则我必让；都不是房主时由 id 大者让，
+           这样不会双方僵持不下（此前会出现两人同坐 1 号位的死锁） */
+        else if(m.seat === this.seat && !this.isHost && (m.h || this.myId > m.id)) this.setSeat(3 - this.seat);
       }
       if(m.char) this.peerChar = m.char;
+      // 限时开关以先到者（黑方）的设定为准，免得双方各执一词
+      if(m.tm !== undefined && m.seat === 1) this.timerOn = !!m.tm;
       if(m.rd && !this.peerReady){ this.peerReady = true; this.onPeerReady && this.onPeerReady(); }
       this.onState && this.onState();
       return;
@@ -1286,6 +1320,72 @@ const Net = {
     }
   }
 };
+
+/* ===================== 联机回合限时 =====================
+   建房时可勾选是否限时。开启后轮到自己须在 30 秒内落子／出招，
+   超时由电脑代落一子——代落走的是正常的 placeStone，因此照常同步给对手。 */
+const TURN_LIMIT = 30;
+let turnSeq = 0;        // 回合序号：落子／出招／续战都会推进，用来判断该不该重新起表
+let _ttKey = '';
+
+const TurnTimer = {
+  left: 0, tid: 0,
+  enabled(){ return gameMode === 'online' && Net.on && !!Net.timerOn; },
+  /* 只有「轮到自己 + 正处于可落子状态」才走表 */
+  active(){
+    if(!this.enabled()) return false;
+    // 择目标态同样计入出招时间，否则可以借「选点」无限拖着不走
+    if(mode !== 'play' && mode !== 'skill') return false;
+    return typeof canControl === 'function' && canControl(current);
+  },
+  reset(){
+    if(!this.active()){ this.stop(); return; }
+    this.left = TURN_LIMIT;
+    clearInterval(this.tid);
+    this.tid = setInterval(()=>this.tick(), 1000);
+    this.paint();
+  },
+  stop(){
+    clearInterval(this.tid); this.tid = 0; this.left = 0; this.paint();
+  },
+  tick(){
+    if(!this.active()){ this.stop(); return; }
+    this.left--;
+    if(this.left <= 0){ this.stop(); this.autoPlay(); return; }
+    this.paint();
+  },
+  paint(){
+    const el = document.getElementById('turnClock');
+    if(!el) return;
+    if(!this.active() || this.left <= 0){ el.style.display = 'none'; return; }
+    el.style.display = 'block';   // 需显式给出，否则会回退到 CSS 里的 display:none
+    const u = this.left <= 10;
+    el.innerHTML = '<span>本回合剩余</span><span class="tcNum' + (u ? ' urgent' : '') + '">' + this.left + '</span><span>秒　超时由电脑代落</span>';
+  },
+  autoPlay(){
+    try{
+      // 停在「择目标」态时先收招（会同步给对手），再代落一子
+      if(mode === 'skill' && typeof cancelSkill === 'function') cancelSkill();
+      if(mode !== 'play') return;
+      const mv = (typeof aiFindMove === 'function') ? aiFindMove(current) : null;
+      if(mv && mv.x != null){
+        message('超时未出招，由电脑代落一子');
+        placeStone(mv.x, mv.y);
+      }
+    }catch(e){ try{ console.warn('[timer] 代打失败', e); }catch(_){} }
+  }
+};
+
+/* 每次 render 对齐一次：回合易主或刚出完招就重新起表 */
+function turnTimerSync(){
+  if(!TurnTimer.active()){
+    if(TurnTimer.tid) TurnTimer.stop();
+    _ttKey = '';
+    return;
+  }
+  const key = current + '|' + turnSeq;
+  if(key !== _ttKey){ _ttKey = key; TurnTimer.reset(); }
+}
 
 /* ===================== 连线 / 锁链 ===================== */
 // 锁住的子仍按原色计入连线；但判断「新五连」时，一段五连中的任意两枚锁子不得 8-相邻
@@ -1422,22 +1522,25 @@ function showCreateRoom(){
       '<div class="roomlabel">邀请链接</div>' +
       '<div class="roomlink" id="roomLink">' + link + '</div>' +
     '</div>' +
+    '<div class="timeropt"><label><input type="checkbox" id="chkTimer" checked> 启用 <b>30 秒</b> 回合限时（超时未出招，由电脑代落一子）</label></div>' +
     '<div class="actions"><button id="btnCopy" class="ghost">复制链接</button>' +
     '<button id="btnEnter" class="primary">进入房间等待</button></div>' +
     '<div class="roomlabel">已有房间号？直接加入</div>' +
-    '<div class="joinrow"><input id="joinCode" maxlength="10" placeholder="如 AB3K9M" autocomplete="off"><button id="btnJoin">加入</button></div>' +
-    '<p class="tip">房间号为随机 6 位，外人无从猜得</p>'
+    '<div class="joinrow"><input id="joinCode" maxlength="4" inputmode="numeric" placeholder="如 3847" autocomplete="off"><button id="btnJoin">加入</button></div>' +
+    '<p class="tip">房间号为随机 4 位数字，口头报给朋友即可</p>'
   );
   try{ document.getElementById('btnCopy').onclick = function(){
     copyText(link, this);
   }; }catch(e){}
   document.getElementById('btnEnter').onclick = function(){
+    const chk = document.getElementById('chkTimer');
+    Net.timerOn = !!(chk && chk.checked);      // 建房者的设定，随心跳同步给对手
     try{ history.replaceState(null, '', location.pathname + '?room=' + code); }catch(e){}
-    onlineConnecting(code);
+    onlineConnecting(code, true);              // 建房者：坐黑先手
   };
   document.getElementById('btnJoin').onclick = function(){
-    const v = (document.getElementById('joinCode').value || '').trim().toUpperCase();
-    if(!v){ alert('请输入朋友的房间号'); return; }
+    const v = (document.getElementById('joinCode').value || '').trim().replace(/\D/g, '').slice(0,4);
+    if(!/^\d{4}$/.test(v)){ alert('房间号是 4 位数字，请检查后重填'); return; }
     try{ history.replaceState(null, '', location.pathname + '?room=' + v); }catch(e){}
     onlineConnecting(v);
   };
@@ -1460,7 +1563,7 @@ function copyText(t, btn){
   }
 }
 
-function onlineConnecting(room){
+function onlineConnecting(room, isHost){
   const link = location.origin + location.pathname + '?room=' + room;
   showOverlay(
     '<h2>异地论剑</h2>' +
@@ -1486,7 +1589,7 @@ function onlineConnecting(room){
     paintNetState();
     try{ message('对手已离线'); }catch(e){}
   };
-  Net.join(room);
+  Net.join(room, isHost);
 }
 
 function paintNetState(){
@@ -1654,6 +1757,7 @@ function startMatch(p1Char, p2Char, forceP1Dark){
   mode = 'play';
   const first = players[current];
   message('<span class="who">' + first.name + '</span> 执黑先手，请落子');
+  turnSeq++;
   Sound.startMatchBGM();   // 开场曲《十面埋伏》前 42 秒，播毕自动转入循环曲
   render();
   triggerAI();
@@ -1721,6 +1825,7 @@ function advanceTurn(){
   } else {
     current = next;
   }
+  turnSeq++;          // 回合推进：联机限时重新起表
   // 铜墙铁壁的封禁自设置后整局生效，不再随施术者回合结束而解除
 }
 
@@ -1807,9 +1912,19 @@ function resumeAfterLifeLost(loser){
   const winner = lastWinner;
   mode = 'play';
   current = other(winner);
+  /* 「静如止水」的禁走只取决于被禁者有没有轮到，与本局是不是由施术者连五结束无关。
+     续战时不会走 advanceTurn，故在此自行结算，否则被禁方会在新一局莫名其妙地解锁。 */
+  let extra = '';
+  if(players[current].skipTurn){
+    const skipped = current;
+    players[skipped].skipTurn = false;
+    current = other(skipped);
+    extra = '　<span class="who">' + players[skipped].name + '</span> 仍受「静如止水」所禁，本回合跳过';
+  }
   const lp = Math.max(0, players[loser].lives);
   roundToast(players[winner].name + ' 连成五子　' + players[loser].name + ' 失一命（余 ' + lp + ' 命）');
-  message('铁链锁之，<span class="who">' + players[loser].name + '</span> 失一命；棋盘不重置，由 <span class="who">' + players[current].name + '</span> 落子');
+  message('铁链锁之，<span class="who">' + players[loser].name + '</span> 失一命；棋盘不重置，由 <span class="who">' + players[current].name + '</span> 落子' + extra);
+  turnSeq++;
   render();
   setTimeout(function(){ triggerAI(); }, 620);
 }
@@ -1947,6 +2062,7 @@ function finishSkill(advance){
   players[current].charge = 0; players[current].skillReady = false;
   pendingSkill = null; mode = 'play'; skillStep = 1; selectedForSkill = null;
   if(advance) advanceTurn();
+  else turnSeq++;          // 出招本身也是一步：之后仍需落子，重新给满 30 秒
   render();
   triggerAI();
 }
@@ -2084,8 +2200,9 @@ function scoreCell(x, y, color){
   return total;
 }
 
-function aiFindMove(){
-  const me = P2, opp = P1;
+function aiFindMove(pid){
+  // 传入 pid 即为该方选点（联机超时代打用）；不传则默认替 AI（P2）选点
+  const me = pid || P2, opp = other(me);
   let best = null, bestScore = -1;
   for(let y=0;y<N;y++) for(let x=0;x<N;x++){
     if(board[y][x] !== EMPTY) continue;
@@ -2524,6 +2641,7 @@ function render(){
   if(btnCancel){
     btnCancel.style.display = (mode === 'skill') ? '' : 'none';
   }
+  turnTimerSync();   // 联机限时：回合易主/状态变化后重新对齐倒计时
 }
 
 function renderPanels(){
@@ -2543,7 +2661,9 @@ function renderPanels(){
         '<span class="dot" style="background:' + pl.char.color + '"></span>' +
         '<span class="pname">' + pl.name + aiTag + '</span>' +
         '<span class="stoneTag ' + stoneCls + '"><i></i>' + stoneName + '</span>' +
-        (isActive ? '<span class="turn">● 当前回合</span>' : '') + thinking +
+        /*「当前回合」始终占位（不轮到时用 visibility 隐藏），
+          否则该字样一进一出会把标题行挤成两行，玩家框随之忽大忽小 */
+        '<span class="turn"' + (isActive ? '' : ' style="visibility:hidden"') + '>● 当前回合</span>' + thinking +
       '</div>' +
       '<div class="charname" data-chant="' + pl.char.name + '" title="点击即喊出此招" style="color:' + pl.char.color + ';cursor:pointer;">绝学·' + pl.char.name + ' <span style="font-size:10px;opacity:.6;">喊</span></div>' +
       '<div class="skilldesc">' + pl.char.desc + '</div>' +
