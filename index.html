@@ -165,8 +165,15 @@
   .chargestat.ready{ color:#A87816; font-weight:800; text-shadow:0 0 5px rgba(255,200,60,.9); }
   .lives{font-size:17px; color:var(--cinnabar); letter-spacing:4px; margin-top:7px; font-weight:bold;}
   /* 联机回合倒计时 */
-  #turnClock{display:none; text-align:center; margin-top:6px; font-size:12px; letter-spacing:2px; color:var(--ink-soft);}
-  #turnClock .tcNum{display:inline-block; font-size:21px; font-weight:800; color:var(--cinnabar); margin:0 5px; font-variant-numeric:tabular-nums; min-width:1.2em;}
+  /* 联机回合倒计时：居于玩家框与棋盘之间。高度恒定，未轮到时只隐去内容、不塌高度，
+     否则倒计时一出现／消失就会把棋盘顶上顶下。 */
+  #turnClock{display:none;}
+  #turnClock.tcLive{
+    display:block; height:28px; line-height:28px; margin:0 0 6px;
+    text-align:center; font-size:12px; letter-spacing:2px; color:var(--ink-soft);
+  }
+  #turnClock.tcIdle{visibility:hidden;}
+  #turnClock .tcNum{display:inline-block; font-size:20px; font-weight:800; color:var(--cinnabar); margin:0 5px; font-variant-numeric:tabular-nums; min-width:1.2em;}
   #turnClock .tcNum.urgent{animation:tcPulse .9s ease-in-out infinite;}
   @keyframes tcPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.22);} }
   /* 建房界面：限时开关 */
@@ -497,13 +504,14 @@
   <div id="panel2" class="panel" data-page-node-id="1y7QO7B4RqRnClexIQnvXO"></div>
 </div>
 
+<div id="turnClock"></div>
+
 <div id="boardFit"><div id="boardBox"><div id="boardWrap" data-page-node-id="bw83TGeAOpkjCZHLoCcApA"><canvas id="board" data-page-node-id="BBHe9gOwyOd9gdVAFSqIA3"></canvas>
   <div id="fxTitle" data-page-node-id="fxTitle01"></div>
   <div id="fxLayer" data-page-node-id="fxLayer01"></div>
 </div></div></div>
 
 <div id="status" data-page-node-id="rdXkheKylO3Zne9q8VMGwK"></div>
-<div id="turnClock"></div>
 
 <details class="rules" data-page-node-id="LKoBBrswgFXs5pPe8iYdWY">
   <summary data-page-node-id="RQKVcIOrUhbLcS7DCiXAaX">武学要诀</summary>
@@ -1357,8 +1365,12 @@ const TurnTimer = {
   paint(){
     const el = document.getElementById('turnClock');
     if(!el) return;
-    if(!this.active() || this.left <= 0){ el.style.display = 'none'; return; }
-    el.style.display = 'block';   // 需显式给出，否则会回退到 CSS 里的 display:none
+    // 非联机或未开启限时：整条不占位（人机／同屏对局不该凭空多出一条空白）
+    if(!this.enabled()){ el.className = ''; el.innerHTML = ''; return; }
+    // 联机且开启限时：位置恒定保留，未轮到自己时隐去内容但不塌高度
+    const on = this.active() && this.left > 0;
+    el.className = on ? 'tcLive' : 'tcLive tcIdle';
+    if(!on) return;
     const u = this.left <= 10;
     el.innerHTML = '<span>本回合剩余</span><span class="tcNum' + (u ? ' urgent' : '') + '">' + this.left + '</span><span>秒　超时由电脑代落</span>';
   },
