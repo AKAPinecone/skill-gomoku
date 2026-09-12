@@ -4,6 +4,17 @@
 <meta charset="UTF-8" data-page-node-id="uE6MdQY6yAEWTXE3fekQB6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="dnMP2euSbAontUi9nygJgq">
 <title>技能五子棋 · 江湖对弈</title>
+<!-- PWA：加到手机主屏幕后显示五子棋图标，而不是浏览器图标 -->
+<meta name="theme-color" content="#a83232">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="技能五子棋">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
 <style>
   :root{
     --paper:#f0e6d0; --paper-light:#faf2dc; --paper-dark:#e0d2ad;
@@ -3519,6 +3530,14 @@ function init(){
   if(_r) enterOnline(); else showModeSelector();
 }
 window.addEventListener('DOMContentLoaded', init);
+</script>
+<script>
+/* 注册 Service Worker：让游戏可安装到主屏幕，并可离线打开 */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
