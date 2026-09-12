@@ -1,0 +1,20 @@
+{
+  "name": "技能五子棋 · 江湖对弈",
+  "short_name": "技能五子棋",
+  "description": "江湖对弈，五子连珠。十种绝学、蓄气连消、支持异地联机的武侠五子棋。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#f0e6d0",
+  "theme_color": "#a83232",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
